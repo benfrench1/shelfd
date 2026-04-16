@@ -1,6 +1,6 @@
-# first_app
+# Shelfd
 
-A new Flutter project.
+A new Flutter project - To log, rate, review books
 
 ## Getting Started
 
