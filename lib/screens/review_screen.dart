@@ -107,6 +107,26 @@ class _ReviewScreenState extends State<ReviewScreen> {
     return count.toString();
   }
 
+  void _showSnack(String message, {IconData? icon}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[Icon(icon, color: Colors.white, size: 18), const SizedBox(width: 8)],
+              Text(message),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+  }
+
   void saveReview() async {
     final review = BookReview(
       title: widget.book.title,
@@ -162,8 +182,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
               onPressed: () async {
                 if (_isWishlisted) {
                   await WishlistService.removeBook(widget.book);
+                  if (mounted) _showSnack('Removed from Future Reads', icon: Icons.bookmark_remove);
                 } else {
                   await WishlistService.addBook(widget.book);
+                  if (mounted) _showSnack('Added to Future Reads', icon: Icons.bookmark_added);
                 }
                 if (mounted) setState(() => _isWishlisted = !_isWishlisted);
               },
@@ -174,9 +196,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
               color: Colors.amber,
             ),
             onPressed: () {
-              setState(() {
-                isFavourite = !isFavourite;
-              });
+              final nowFavourite = !isFavourite;
+              setState(() => isFavourite = nowFavourite);
+              _showSnack(
+                nowFavourite ? 'Starred' : 'Unstarred',
+                icon: nowFavourite ? Icons.star : Icons.star_border,
+              );
             },
           ),
         ],

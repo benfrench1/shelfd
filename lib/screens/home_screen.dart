@@ -5,6 +5,7 @@ import '../models/book_review.dart';
 import '../services/storage_service.dart';
 import '../services/book_service.dart';
 import '../services/quote_service.dart';
+import '../services/wishlist_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(int) onNavigate;
@@ -53,6 +54,57 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _coverUrl(int? id) {
     if (id == null) return null;
     return "https://covers.openlibrary.org/b/id/$id-M.jpg";
+  }
+
+  void _showAddToWishlist(BuildContext context, Book book) async {
+    final isAlready = await WishlistService.isWishlisted(book);
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(
+                isAlready ? Icons.bookmark_added : Icons.bookmark_add_outlined,
+                color: Colors.deepOrange,
+              ),
+              title: Text(isAlready ? 'Already in Future Reads' : 'Add to Future Reads'),
+              subtitle: Text(book.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              onTap: isAlready
+                  ? null
+                  : () async {
+                      Navigator.pop(context);
+                      await WishlistService.addBook(book);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.bookmark_added, color: Colors.white, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Added to Future Reads'),
+                                ],
+                              ),
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              margin: const EdgeInsets.all(16),
+                            ),
+                          );
+                      }
+                    },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -191,14 +243,17 @@ class _HomeScreenState extends State<HomeScreen> {
                               final book = _recommendations[index];
                               final url = _coverUrl(book.coverId);
 
-                              return _bookCard(
-                                title: book.title,
-                                subtitle: book.author,
-                                footer: book.year > 0
-                                    ? "${book.year}"
-                                    : "",
-                                coverUrl: url,
-                                isFavourite: false,
+                              return GestureDetector(
+                                onLongPress: () => _showAddToWishlist(context, book),
+                                child: _bookCard(
+                                  title: book.title,
+                                  subtitle: book.author,
+                                  footer: book.year > 0
+                                      ? "${book.year}"
+                                      : "",
+                                  coverUrl: url,
+                                  isFavourite: false,
+                                ),
                               );
                             },
                           ),

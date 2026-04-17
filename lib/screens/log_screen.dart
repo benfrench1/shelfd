@@ -284,7 +284,7 @@ class _LogScreenState extends State<LogScreen> {
                       'Reading Log',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 19,
                       ),
                     ),
                   ),
