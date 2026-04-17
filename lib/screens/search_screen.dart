@@ -304,7 +304,7 @@ class _WishlistButtonState extends State<_WishlistButton> {
     _wishlisted = widget.isWishlisted;
   }
 
-  Future<void> _toggle() async {
+  Future<void> _toggle(BuildContext context) async {
     if (_wishlisted) {
       await WishlistService.removeBook(widget.book);
     } else {
@@ -313,6 +313,28 @@ class _WishlistButtonState extends State<_WishlistButton> {
     setState(() {
       _wishlisted = !_wishlisted;
     });
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _wishlisted ? Icons.bookmark_added : Icons.bookmark_remove,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(_wishlisted ? 'Added to Future Reads' : 'Removed from Future Reads'),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
     widget.onChanged();
   }
 
@@ -324,7 +346,7 @@ class _WishlistButtonState extends State<_WishlistButton> {
         _wishlisted ? Icons.bookmark : Icons.bookmark_add_outlined,
         color: _wishlisted ? Colors.deepOrange : Colors.grey,
       ),
-      onPressed: _toggle,
+      onPressed: () => _toggle(context),
     );
   }
 }

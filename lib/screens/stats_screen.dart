@@ -85,7 +85,7 @@ class _StatsScreenState extends State<StatsScreen> {
                       'Your Reading Stats',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 19,
                       ),
                     ),
                   ),

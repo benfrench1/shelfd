@@ -123,7 +123,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                     child: Text(
                       'Future Reads',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 22),
+                      style: TextStyle(fontSize: 19),
                     ),
                   ),
                   const SizedBox(width: 96),
