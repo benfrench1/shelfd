@@ -42,17 +42,7 @@ class _LogScreenState extends State<LogScreen> {
   }
 
   Future<void> deleteReview(BookReview review) async {
-    final index = await StorageService.findReviewIndex(
-      review.title,
-      review.author,
-    );
-
-    if (index == null) return;
-
-    final current = await StorageService.getReviews();
-    current.removeAt(index);
-
-    await StorageService.saveAllReviews(current);
+    await StorageService.deleteReview(review.title, review.author);
     await loadReviews();
   }
 

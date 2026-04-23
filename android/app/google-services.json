@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "733722860103",
+    "project_id": "shelfd-41c13",
+    "storage_bucket": "shelfd-41c13.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:733722860103:android:26c44e560e924d0ee32f62",
+        "android_client_info": {
+          "package_name": "com.example.first_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "733722860103-o54lsa820e5fttrt0n42eltmptmq9one.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaKanlTkvCmZwvZPWxUlQWq-xBu7vvlTg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "733722860103-o54lsa820e5fttrt0n42eltmptmq9one.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "733722860103-83htvqj5epf8vakv70rcq0bsek1thg9m.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.firstApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

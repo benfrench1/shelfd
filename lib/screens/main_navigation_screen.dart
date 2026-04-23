@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'log_screen.dart';
-import 'stats_screen.dart';
+import 'profile_screen.dart';
 import 'wishlist_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -30,7 +30,7 @@ class _MainNavigationScreenState
       HomeScreen(onNavigate: onItemTapped),
       const SearchScreen(),
       const LogScreen(),
-      const StatsScreen(),
+      const ProfileScreen(),
       const WishlistScreen(),
     ];
 
@@ -59,8 +59,8 @@ class _MainNavigationScreenState
             label: "Log",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: "Stats",
+            icon: Icon(Icons.person_outline),
+            label: "Profile",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.travel_explore),
