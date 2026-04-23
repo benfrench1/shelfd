@@ -1,61 +1,53 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/book.dart';
 
 class WishlistService {
-  static const String _key = "future_reads";
+  static CollectionReference<Map<String, dynamic>> _wishlistCollection() {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('wishlist');
+  }
 
   static Future<List<Book>> getWishlist() async {
-    final prefs = await SharedPreferences.getInstance();
-    final json = prefs.getString(_key);
-    if (json == null) return [];
-    final List decoded = jsonDecode(json);
-    return decoded.map((j) => Book.fromJson(j)).toList();
+    final snapshot = await _wishlistCollection().orderBy('title').get();
+    return snapshot.docs.map((doc) => Book.fromJson(doc.data())).toList();
   }
 
   static Future<void> addBook(Book book) async {
-    final list = await getWishlist();
-    final alreadyAdded = list.any(
-      (b) => b.title.toLowerCase() == book.title.toLowerCase() &&
-          b.author.toLowerCase() == book.author.toLowerCase(),
-    );
-    if (alreadyAdded) return;
-    list.add(book);
-    await _save(list);
+    final already = await isWishlisted(book);
+    if (already) return;
+    await _wishlistCollection().add(book.toJson());
   }
 
   static Future<void> removeBook(Book book) async {
-    final list = await getWishlist();
-    list.removeWhere(
-      (b) => b.title.toLowerCase() == book.title.toLowerCase() &&
-          b.author.toLowerCase() == book.author.toLowerCase(),
-    );
-    await _save(list);
+    final snapshot = await _wishlistCollection()
+        .where('title', isEqualTo: book.title)
+        .where('author', isEqualTo: book.author)
+        .get();
+    for (final doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
   }
 
   static Future<bool> isWishlisted(Book book) async {
-    final list = await getWishlist();
-    return list.any(
-      (b) => b.title.toLowerCase() == book.title.toLowerCase() &&
-          b.author.toLowerCase() == book.author.toLowerCase(),
-    );
+    final snapshot = await _wishlistCollection()
+        .where('title', isEqualTo: book.title)
+        .where('author', isEqualTo: book.author)
+        .get();
+    return snapshot.docs.isNotEmpty;
   }
 
-  static Future<void> removeByTitleAuthor(
-      String title, String author) async {
-    final list = await getWishlist();
-    list.removeWhere(
-      (b) => b.title.toLowerCase() == title.toLowerCase() &&
-          b.author.toLowerCase() == author.toLowerCase(),
-    );
-    await _save(list);
-  }
-
-  static Future<void> _save(List<Book> list) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _key,
-      jsonEncode(list.map((b) => b.toJson()).toList()),
-    );
+  static Future<void> removeByTitleAuthor(String title, String author) async {
+    final snapshot = await _wishlistCollection()
+        .where('title', isEqualTo: title)
+        .where('author', isEqualTo: author)
+        .get();
+    for (final doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
   }
 }
+

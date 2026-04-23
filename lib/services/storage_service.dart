@@ -1,95 +1,59 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/book_review.dart';
 import 'wishlist_service.dart';
 
 class StorageService {
-  static const String key =
-      "book_reviews";
+  static CollectionReference<Map<String, dynamic>> _reviewsCollection() {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('reviews');
+  }
 
-  static Future<void> saveReview(
-      BookReview review) async {
-    final prefs =
-        await SharedPreferences
-            .getInstance();
-
-    final reviews =
-        await getReviews();
-
-    reviews.add(review);
-
-    await saveAllReviews(reviews);
+  static Future<void> saveReview(BookReview review) async {
+    await _reviewsCollection().add(review.toJson());
     await WishlistService.removeByTitleAuthor(review.title, review.author);
   }
 
-  static Future<void> updateReview(
-      int index,
-      BookReview review) async {
-    final reviews =
-        await getReviews();
-
-    reviews[index] = review;
-    await WishlistService.removeByTitleAuthor(review.title, review.author);
-
-    await saveAllReviews(reviews);
-  }
-
-  static Future<void> saveAllReviews(
-      List<BookReview> reviews) async {
-    final prefs =
-        await SharedPreferences
-            .getInstance();
-
-    final jsonList =
-        reviews
-            .map((r) => r.toJson())
-            .toList();
-
-    await prefs.setString(
-      key,
-      jsonEncode(jsonList),
-    );
-  }
-
-  static Future<List<BookReview>>
-      getReviews() async {
-    final prefs =
-        await SharedPreferences
-            .getInstance();
-
-    final jsonString =
-        prefs.getString(key);
-
-    if (jsonString == null) {
-      return [];
+  static Future<void> updateReview(int index, BookReview review) async {
+    final snapshot = await _reviewsCollection()
+        .orderBy('dateAdded')
+        .get();
+    if (index < snapshot.docs.length) {
+      await snapshot.docs[index].reference.update(review.toJson());
     }
+    await WishlistService.removeByTitleAuthor(review.title, review.author);
+  }
 
-    final List decoded =
-        jsonDecode(jsonString);
-
-    return decoded
-        .map((json) =>
-            BookReview.fromJson(json))
+  static Future<List<BookReview>> getReviews() async {
+    final snapshot = await _reviewsCollection()
+        .orderBy('dateAdded')
+        .get();
+    return snapshot.docs
+        .map((doc) => BookReview.fromJson(doc.data()))
         .toList();
   }
 
-  static Future<int?> findReviewIndex(
-      String title,
-      String author) async {
-    final reviews =
-        await getReviews();
-
-    for (int i = 0;
-        i < reviews.length;
-        i++) {
-      final r = reviews[i];
-
-      if (r.title == title &&
-          r.author == author) {
+  static Future<int?> findReviewIndex(String title, String author) async {
+    final reviews = await getReviews();
+    for (int i = 0; i < reviews.length; i++) {
+      if (reviews[i].title == title && reviews[i].author == author) {
         return i;
       }
     }
-
     return null;
   }
+
+  static Future<void> deleteReview(String title, String author) async {
+    final snapshot = await _reviewsCollection()
+        .where('title', isEqualTo: title)
+        .where('author', isEqualTo: author)
+        .get();
+    for (final doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
+  }
 }
+
