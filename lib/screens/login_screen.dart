@@ -19,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _forgotHovered = false;
   String? _errorMessage;
 
   @override
@@ -73,6 +74,107 @@ class _LoginScreenState extends State<LoginScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _showForgotPasswordDialog() async {
+    final emailController = TextEditingController(
+      text: _emailController.text.trim(),
+    );
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Enter your email address and we\'ll send you a link to reset your password.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepOrange,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              final email = emailController.text.trim();
+              if (email.isEmpty || !email.contains('@')) {
+                return;
+              }
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.of(context).pop();
+              try {
+                await _authService.resetPassword(email);
+                messenger
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(Icons.mark_email_read_outlined,
+                                color: Colors.white, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Reset link sent to $email — check your inbox!',
+                              ),
+                            ),
+                          ],
+                        ),
+                        duration: const Duration(seconds: 5),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        margin: const EdgeInsets.all(16),
+                      ),
+                    );
+              } on FirebaseAuthException {
+                messenger
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                      SnackBar(
+                        content: const Row(
+                          children: [
+                            Icon(Icons.error_outline,
+                                color: Colors.white, size: 20),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                  'Could not send reset email. Please check the address and try again.'),
+                            ),
+                          ],
+                        ),
+                        duration: const Duration(seconds: 4),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        margin: const EdgeInsets.all(16),
+                      ),
+                    );
+              }
+            },
+            child: const Text('Send Reset Email'),
+          ),
+        ],
+      ),
+    );
+    emailController.dispose();
   }
 
 // Firebase has an Email Enumeration Protection enabled by default on new projects, which makes fetchSignInMethodsForEmail 
@@ -318,6 +420,35 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Text('Create one'),
                       ),
                     ],
+                  ),
+                  Center(
+                    child: MouseRegion(
+                      onEnter: (_) => setState(() => _forgotHovered = true),
+                      onExit: (_) => setState(() => _forgotHovered = false),
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: _showForgotPasswordDialog,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _forgotHovered
+                                ? Colors.blue.shade200.withOpacity(0.55)
+                                : Colors.blue.shade100.withOpacity(0.35),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            'Forgot password?',
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
