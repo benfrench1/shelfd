@@ -158,38 +158,47 @@ class _UserProfileTab extends StatelessWidget {
           const SizedBox(height: 32),
 
           // Sign out
-          OutlinedButton.icon(
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Sign Out'),
-                  content: const Text('Are you sure you want to sign out?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('No'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      child: const Text(
-                        'Yes',
-                        style: TextStyle(color: Colors.red),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Sign Out'),
+                    content: const Text('Are you sure you want to sign out?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('No'),
                       ),
-                    ),
-                  ],
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: const Text(
+                          'Yes',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await authService.signOut();
+                }
+              },
+              icon: const Icon(Icons.logout, color: Colors.white),
+              label: const Text(
+                'Sign Out',
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+                padding: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              );
-              if (confirm == true) {
-                await authService.signOut();
-              }
-            },
-            icon: const Icon(Icons.logout),
-            label: const Text('Sign Out'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red),
-              minimumSize: const Size.fromHeight(48),
+                elevation: 0,
+              ),
             ),
           ),
         ],
@@ -243,6 +252,17 @@ class _StatsTabState extends State<_StatsTab> {
     final sorted = List<BookReview>.from(reviews)
       ..sort((a, b) => b.rating.compareTo(a.rating));
     return sorted.take(3).toList();
+  }
+
+  List<MapEntry<int, int>> get booksByYear {
+    final Map<int, int> counts = {};
+    for (final r in reviews) {
+      final y = r.dateAdded.year;
+      counts[y] = (counts[y] ?? 0) + 1;
+    }
+    final sorted = counts.entries.toList()
+      ..sort((a, b) => b.key.compareTo(a.key));
+    return sorted;
   }
 
   @override
@@ -318,6 +338,9 @@ class _StatsTabState extends State<_StatsTab> {
           ),
           const SizedBox(height: 10),
           ...topRated.map((b) => Card(
+                color: b.isFavourite
+                    ? Colors.amber.withOpacity(0.15)
+                    : null,
                 child: ListTile(
                   title: Text(b.title),
                   subtitle: Text(b.author),
@@ -327,6 +350,22 @@ class _StatsTabState extends State<_StatsTab> {
                       const Icon(Icons.star, color: Colors.amber, size: 18),
                       Text(b.rating.toString()),
                     ],
+                  ),
+                ),
+              )),
+          const SizedBox(height: 20),
+          const Text(
+            "Stats by Year",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          ...booksByYear.map((entry) => Card(
+                child: ListTile(
+                  leading: const Icon(Icons.calendar_today),
+                  title: Text(entry.key.toString()),
+                  trailing: Text(
+                    entry.value.toString(),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ),
               )),
