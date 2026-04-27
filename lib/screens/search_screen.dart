@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/auth_service.dart';
 import '../services/book_service.dart';
 import '../services/storage_service.dart';
 import '../services/wishlist_service.dart';
@@ -8,7 +12,8 @@ import '../models/book_review.dart';
 import 'review_screen.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final bool autoFocus;
+  const SearchScreen({super.key, this.autoFocus = false});
 
   @override
   State<SearchScreen> createState() =>
@@ -18,17 +23,47 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState
     extends State<SearchScreen> {
   final controller = TextEditingController();
+  late final FocusNode _focusNode;
 
   List<Book> books = [];
   List<BookReview> reviews = [];
   Set<String> _wishlistedKeys = {};
+  String? _avatarAsset;
+  final _authService = AuthService();
+  StreamSubscription<String?>? _avatarSub;
 
   bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
     loadReviews();
+    _avatarSub = _authService.avatarAssetStream.listen((asset) {
+      if (mounted) setState(() => _avatarAsset = asset);
+    });
+    if (widget.autoFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(SearchScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.autoFocus && !oldWidget.autoFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _avatarSub?.cancel();
+    super.dispose();
   }
 
   Future<void> loadReviews() async {
@@ -102,6 +137,20 @@ class _SearchScreenState
                           color: const Color(0xff5C3A1E),
                         ),
                       ),
+                      const Spacer(),
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
+                        backgroundImage: _avatarAsset != null
+                            ? AssetImage(_avatarAsset!) as ImageProvider
+                            : (FirebaseAuth.instance.currentUser?.photoURL != null
+                                ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
+                                : null),
+                        child: _avatarAsset == null &&
+                                FirebaseAuth.instance.currentUser?.photoURL == null
+                            ? const Icon(Icons.person, size: 20, color: Color(0xff5C3A1E))
+                            : null,
+                      ),
                     ],
                   ),
 
@@ -116,9 +165,10 @@ class _SearchScreenState
                     ),
                     child: TextField(
                       controller: controller,
+                      focusNode: _focusNode,
                       decoration: const InputDecoration(
                         icon: Icon(Icons.search),
-                        hintText: "Search for a book...",
+                        hintText: "Search books, authors, genres...",
                         border: InputBorder.none,
                       ),
                       onSubmitted: (_) => search(),

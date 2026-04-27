@@ -17,18 +17,31 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState
     extends State<MainNavigationScreen> {
   int selectedIndex = 0;
+  bool _searchAutoFocus = false;
 
   void onItemTapped(int index) {
     setState(() {
       selectedIndex = index;
+      _searchAutoFocus = false;
+    });
+  }
+
+  void _navigateToSearchFocused() {
+    setState(() {
+      selectedIndex = 1;
+      _searchAutoFocus = true;
+    });
+    // Reset after the frame so didUpdateWidget fires only once
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _searchAutoFocus = false);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final List<Widget> screens = [
-      HomeScreen(onNavigate: onItemTapped),
-      const SearchScreen(),
+      HomeScreen(onNavigate: onItemTapped, onSearchTapped: _navigateToSearchFocused),
+      SearchScreen(autoFocus: _searchAutoFocus),
       const LogScreen(),
       const ProfileScreen(),
       const WishlistScreen(),

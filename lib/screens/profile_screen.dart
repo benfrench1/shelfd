@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../models/book_review.dart';
@@ -71,13 +72,152 @@ class ProfileScreen extends StatelessWidget {
 
 // ─── User Profile Tab ────────────────────────────────────────────────────────
 
-class _UserProfileTab extends StatelessWidget {
+class _UserProfileTab extends StatefulWidget {
   const _UserProfileTab();
+
+  @override
+  State<_UserProfileTab> createState() => _UserProfileTabState();
+}
+
+class _UserProfileTabState extends State<_UserProfileTab> {
+  final _authService = AuthService();
+  String? _avatarAsset;
+  List<String> _avatarAssets = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvatar();
+    _loadAvatarAssets();
+  }
+
+  Future<void> _loadAvatar() async {
+    final asset = await _authService.getAvatarAsset();
+    if (mounted) setState(() => _avatarAsset = asset);
+  }
+
+  Future<void> _loadAvatarAssets() async {
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final assets = manifest
+        .listAssets()
+        .where((key) => key.startsWith('assets/avatars/'))
+        .toList()..sort();
+    if (mounted) setState(() => _avatarAssets = assets);
+  }
+
+  void _showEnlargedAvatar() {
+    final user = FirebaseAuth.instance.currentUser;
+    final ImageProvider? image = _avatarAsset != null
+        ? AssetImage(_avatarAsset!) as ImageProvider
+        : (user?.photoURL != null ? NetworkImage(user!.photoURL!) : null);
+    if (image == null) return;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      barrierDismissible: true,
+      builder: (_) => GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: GestureDetector(
+            onTap: () {}, // prevent tap on image from closing
+            child: CircleAvatar(
+              radius: 140,
+              backgroundImage: image,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAvatarPicker() {
+    String? pendingAvatar = _avatarAsset;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) => DraggableScrollableSheet(
+        initialChildSize: 0.95,
+        minChildSize: 0.75,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, scrollController) => Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Choose an avatar',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.of(sheetContext).pop();
+                      if (pendingAvatar != null && pendingAvatar != _avatarAsset) {
+                        await _authService.saveAvatarAsset(pendingAvatar!);
+                        if (mounted) setState(() => _avatarAsset = pendingAvatar!);
+                      }
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.green,
+                      textStyle: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    child: const Text('Done'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: GridView.builder(
+                  controller: scrollController,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: _avatarAssets.length,
+                  itemBuilder: (_, i) {
+                    final asset = _avatarAssets[i];
+                    final isSelected = pendingAvatar == asset;
+                    return GestureDetector(
+                      onTap: () {
+                        setSheetState(() => pendingAvatar = asset);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: isSelected
+                              ? Border.all(color: Colors.green, width: 5)
+                              : Border.all(color: Colors.transparent, width: 5),
+                        ),
+                        child: CircleAvatar(
+                          backgroundImage: AssetImage(asset),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final authService = AuthService();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -87,32 +227,41 @@ class _UserProfileTab extends StatelessWidget {
 
           // Avatar
           Stack(
-            alignment: Alignment.bottomRight,
+            clipBehavior: Clip.none,
             children: [
-              CircleAvatar(
-                radius: 52,
-                backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
-                backgroundImage: user?.photoURL != null
-                    ? NetworkImage(user!.photoURL!)
-                    : null,
-                child: user?.photoURL == null
-                    ? const Icon(Icons.person, size: 52, color: Color(0xff5C3A1E))
-                    : null,
+              // Force the Stack's layout size to include the overflow button area
+              const SizedBox(width: 124, height: 104),
+              Positioned(
+                left: 0,
+                top: 0,
+                child: GestureDetector(
+                  onTap: _showEnlargedAvatar,
+                  child: CircleAvatar(
+                    radius: 52,
+                    backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
+                    backgroundImage: _avatarAsset != null
+                        ? AssetImage(_avatarAsset!) as ImageProvider
+                        : (user?.photoURL != null
+                            ? NetworkImage(user!.photoURL!)
+                            : null),
+                    child: _avatarAsset == null && user?.photoURL == null
+                        ? const Icon(Icons.person, size: 52, color: Color(0xff5C3A1E))
+                        : null,
+                  ),
+                ),
               ),
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.deepOrange,
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  icon: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
-                  tooltip: 'Change profile picture',
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Profile picture upload coming soon.'),
-                      ),
-                    );
-                  },
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.deepOrange,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.edit, size: 16, color: Colors.white),
+                    tooltip: 'Change profile picture',
+                    onPressed: _showAvatarPicker,
+                  ),
                 ),
               ),
             ],
@@ -183,7 +332,7 @@ class _UserProfileTab extends StatelessWidget {
                   ),
                 );
                 if (confirm == true) {
-                  await authService.signOut();
+                  await _authService.signOut();
                 }
               },
               icon: const Icon(Icons.logout, color: Colors.white),
@@ -210,170 +359,33 @@ class _UserProfileTab extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () async {
-                    final currentPasswordController = TextEditingController();
-                    final newPasswordController = TextEditingController();
-                    final confirmPasswordController = TextEditingController();
-                    bool obscureCurrent = true;
-                    bool obscureNew = true;
-                    bool obscureConfirm = true;
-                    String? dialogError;
-
-                    await showDialog(
+                    final messenger = ScaffoldMessenger.of(context);
+                    final success = await showDialog<bool>(
                       context: context,
-                      builder: (dialogContext) => StatefulBuilder(
-                        builder: (dialogContext, setDialogState) => AlertDialog(
-                          insetPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 24),
-                          title: const Text('Change Password'),
-                          content: SizedBox(
-                            width: double.maxFinite,
-                            child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextField(
-                                controller: currentPasswordController,
-                                obscureText: obscureCurrent,
-                                decoration: InputDecoration(
-                                  labelText: 'Current password',
-                                  prefixIcon: const Icon(Icons.lock_outlined),
-                                  border: const OutlineInputBorder(),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(obscureCurrent
-                                        ? Icons.visibility_outlined
-                                        : Icons.visibility_off_outlined),
-                                    onPressed: () => setDialogState(
-                                        () => obscureCurrent = !obscureCurrent),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: newPasswordController,
-                                obscureText: obscureNew,
-                                decoration: InputDecoration(
-                                  labelText: 'New password',
-                                  prefixIcon: const Icon(Icons.lock_outlined),
-                                  border: const OutlineInputBorder(),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(obscureNew
-                                        ? Icons.visibility_outlined
-                                        : Icons.visibility_off_outlined),
-                                    onPressed: () => setDialogState(
-                                        () => obscureNew = !obscureNew),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: confirmPasswordController,
-                                obscureText: obscureConfirm,
-                                decoration: InputDecoration(
-                                  labelText: 'Confirm new password',
-                                  prefixIcon: const Icon(Icons.lock_outlined),
-                                  border: const OutlineInputBorder(),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(obscureConfirm
-                                        ? Icons.visibility_outlined
-                                        : Icons.visibility_off_outlined),
-                                    onPressed: () => setDialogState(
-                                        () => obscureConfirm = !obscureConfirm),
-                                  ),
-                                ),
-                              ),
-                              if (dialogError != null) ...
-                                [
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    dialogError!,
-                                    style: const TextStyle(color: Colors.red, fontSize: 13),
-                                  ),
-                                ],
-                            ],
-                          ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(dialogContext).pop(),
-                              child: const Text('Cancel'),
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.deepOrange,
-                                foregroundColor: Colors.white,
-                              ),
-                              onPressed: () async {
-                                final current = currentPasswordController.text;
-                                final newPwd = newPasswordController.text;
-                                final confirm = confirmPasswordController.text;
-                                if (current.isEmpty || newPwd.isEmpty || confirm.isEmpty) {
-                                  setDialogState(() => dialogError = 'Please fill in all fields.');
-                                  return;
-                                }
-                                if (newPwd.length < 6) {
-                                  setDialogState(() => dialogError = 'New password must be at least 6 characters.');
-                                  return;
-                                }
-                                if (newPwd != confirm) {
-                                  setDialogState(() => dialogError = 'New passwords do not match.');
-                                  return;
-                                }
-                                final messenger = ScaffoldMessenger.of(context);
-                                Navigator.of(dialogContext).pop();
-                                try {
-                                  await authService.updatePassword(current, newPwd);
-                                  messenger
-                                    ..hideCurrentSnackBar()
-                                    ..showSnackBar(
-                                      SnackBar(
-                                        content: const Row(
-                                          children: [
-                                            Icon(Icons.check_circle_outline,
-                                                color: Colors.white, size: 20),
-                                            SizedBox(width: 10),
-                                            Text('Password updated successfully!'),
-                                          ],
-                                        ),
-                                        duration: const Duration(seconds: 4),
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(10)),
-                                        margin: const EdgeInsets.all(16),
-                                      ),
-                                    );
-                                } on FirebaseAuthException catch (e) {
-                                  final msg = e.code == 'wrong-password' || e.code == 'invalid-credential'
-                                      ? 'Current password is incorrect.'
-                                      : 'Could not update password. Please try again.';
-                                  messenger
-                                    ..hideCurrentSnackBar()
-                                    ..showSnackBar(
-                                      SnackBar(
-                                        content: Row(
-                                          children: [
-                                            const Icon(Icons.error_outline,
-                                                color: Colors.white, size: 20),
-                                            const SizedBox(width: 10),
-                                            Expanded(child: Text(msg)),
-                                          ],
-                                        ),
-                                        duration: const Duration(seconds: 4),
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(10)),
-                                        margin: const EdgeInsets.all(16),
-                                      ),
-                                    );
-                                }
-                              },
-                              child: const Text('Update Password'),
-                            ),
-                          ],
-                        ),
-                      ),
+                      builder: (dialogContext) =>
+                          _ChangePasswordDialog(authService: _authService),
                     );
-                    currentPasswordController.dispose();
-                    newPasswordController.dispose();
-                    confirmPasswordController.dispose();
+                    if (success == true) {
+                      messenger
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          SnackBar(
+                            content: const Row(
+                              children: [
+                                Icon(Icons.check_circle_outline,
+                                    color: Colors.white, size: 20),
+                                SizedBox(width: 10),
+                                Text('Password updated successfully!'),
+                              ],
+                            ),
+                            duration: const Duration(seconds: 4),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            margin: const EdgeInsets.all(16),
+                          ),
+                        );
+                    }
                   },
                   icon: const Icon(Icons.lock_reset),
                   label: const Text(
@@ -393,6 +405,169 @@ class _UserProfileTab extends StatelessWidget {
             ],
         ],
       ),
+    );
+  }
+}
+
+// ─── Change Password Dialog ───────────────────────────────────────────────────
+
+class _ChangePasswordDialog extends StatefulWidget {
+  final AuthService authService;
+  const _ChangePasswordDialog({required this.authService});
+
+  @override
+  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+  final _currentController = TextEditingController();
+  final _newController = TextEditingController();
+  final _confirmController = TextEditingController();
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+  String? _error;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _currentController.dispose();
+    _newController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      insetPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      title: const Text('Change Password'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _currentController,
+              obscureText: _obscureCurrent,
+              decoration: InputDecoration(
+                labelText: 'Current password',
+                prefixIcon: const Icon(Icons.lock_outlined),
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureCurrent
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined),
+                  onPressed: () =>
+                      setState(() => _obscureCurrent = !_obscureCurrent),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _newController,
+              obscureText: _obscureNew,
+              decoration: InputDecoration(
+                labelText: 'New password',
+                prefixIcon: const Icon(Icons.lock_outlined),
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureNew
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined),
+                  onPressed: () =>
+                      setState(() => _obscureNew = !_obscureNew),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _confirmController,
+              obscureText: _obscureConfirm,
+              decoration: InputDecoration(
+                labelText: 'Confirm new password',
+                prefixIcon: const Icon(Icons.lock_outlined),
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureConfirm
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined),
+                  onPressed: () =>
+                      setState(() => _obscureConfirm = !_obscureConfirm),
+                ),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: const TextStyle(color: Colors.red, fontSize: 13),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.deepOrange,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: _isLoading
+              ? null
+              : () async {
+                  final current = _currentController.text;
+                  final newPwd = _newController.text;
+                  final confirm = _confirmController.text;
+                  if (current.isEmpty || newPwd.isEmpty || confirm.isEmpty) {
+                    setState(() => _error = 'Please fill in all fields.');
+                    return;
+                  }
+                  if (newPwd.length < 6) {
+                    setState(() => _error =
+                        'New password must be at least 6 characters.');
+                    return;
+                  }
+                  if (newPwd != confirm) {
+                    setState(
+                        () => _error = 'New passwords do not match.');
+                    return;
+                  }
+                  setState(() {
+                    _isLoading = true;
+                    _error = null;
+                  });
+                  try {
+                    await widget.authService.updatePassword(current, newPwd);
+                    if (mounted) Navigator.of(context).pop(true);
+                  } on FirebaseAuthException catch (e) {
+                    final msg = e.code == 'wrong-password' ||
+                            e.code == 'invalid-credential'
+                        ? 'Current password is incorrect.'
+                        : 'Could not update password. Please try again.';
+                    if (mounted) {
+                      setState(() {
+                        _error = msg;
+                        _isLoading = false;
+                      });
+                    }
+                  }
+                },
+          child: _isLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
+                )
+              : const Text('Update Password'),
+        ),
+      ],
     );
   }
 }

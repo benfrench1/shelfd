@@ -220,6 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                  const SizedBox(height: 73),
                   Column(
                     children: [
                       Image.asset(
@@ -246,7 +247,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 41),
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,

@@ -1,7 +1,11 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/book.dart';
 import '../models/book_review.dart';
+import '../services/auth_service.dart';
 import '../services/storage_service.dart';
 import '../services/book_service.dart';
 import '../services/quote_service.dart';
@@ -9,8 +13,9 @@ import '../services/wishlist_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(int) onNavigate;
+  final VoidCallback? onSearchTapped;
 
-  const HomeScreen({super.key, required this.onNavigate});
+  const HomeScreen({super.key, required this.onNavigate, this.onSearchTapped});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -22,11 +27,23 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _loadingRecs = true;
   DailyQuote? _quote;
   bool _loadingQuote = true;
+  String? _avatarAsset;
+  final _authService = AuthService();
+  StreamSubscription<String?>? _avatarSub;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _avatarSub = _authService.avatarAssetStream.listen((asset) {
+      if (mounted) setState(() => _avatarAsset = asset);
+    });
+  }
+
+  @override
+  void dispose() {
+    _avatarSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -138,6 +155,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: const Color(0xff5C3A1E),
                     ),
                   ),
+                  const Spacer(),
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
+                    backgroundImage: _avatarAsset != null
+                        ? AssetImage(_avatarAsset!) as ImageProvider
+                        : (FirebaseAuth.instance.currentUser?.photoURL != null
+                            ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
+                            : null),
+                    child: _avatarAsset == null &&
+                            FirebaseAuth.instance.currentUser?.photoURL == null
+                        ? const Icon(Icons.person, size: 20, color: Color(0xff5C3A1E))
+                        : null,
+                  ),
                 ],
               ),
 
@@ -155,7 +186,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Search bar — tapping jumps to Search tab
               GestureDetector(
-                onTap: () => widget.onNavigate(1),
+                onTap: () {
+                  widget.onNavigate(1);
+                  widget.onSearchTapped?.call();
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
