@@ -71,6 +71,7 @@ flutter:
     - assets/images/shelfd_full_logo.png
     - assets/images/g_google_logo.png
     - assets/images/shelf_wallpaper_2.png
+    - assets/avatars/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
