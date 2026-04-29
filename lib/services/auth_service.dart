@@ -72,6 +72,74 @@ class AuthService {
         .map((doc) => doc.data()?['avatarAsset'] as String?);
   }
 
+  Future<String?> getUsername() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return null;
+    final doc = await _firestore.collection('users').doc(uid).get();
+    return doc.data()?['username'] as String?;
+  }
+
+  /// Saves a username atomically.
+  /// Throws [UsernameUnavailableException] if already taken by another user.
+  /// Pass an empty string to clear the username.
+  Future<void> saveUsername(String username) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) throw FirebaseAuthException(code: 'no-user');
+
+    final trimmed = username.trim();
+
+    // Fetch the current username so we can release the old reservation
+    final userDoc = await _firestore.collection('users').doc(uid).get();
+    final oldUsername = userDoc.data()?['username'] as String?;
+
+    if (trimmed.isEmpty) {
+      // Clearing the username
+      await _firestore.runTransaction((tx) async {
+        if (oldUsername != null && oldUsername.isNotEmpty) {
+          tx.delete(_firestore.collection('usernames').doc(oldUsername));
+        }
+        tx.update(_firestore.collection('users').doc(uid),
+            {'username': FieldValue.delete()});
+      });
+      return;
+    }
+
+    if (trimmed == oldUsername) return; // no change
+
+    final usernameRef = _firestore.collection('usernames').doc(trimmed);
+
+    // Return false from the transaction rather than throwing inside it —
+    // Firebase can wrap/swallow non-Firebase exceptions during retries.
+    final available = await _firestore.runTransaction<bool>((tx) async {
+      final existing = await tx.get(usernameRef);
+      if (existing.exists && existing.data()?['uid'] != uid) {
+        return false;
+      }
+      // Release old username slot
+      if (oldUsername != null && oldUsername.isNotEmpty) {
+        tx.delete(_firestore.collection('usernames').doc(oldUsername));
+      }
+      // Reserve new username
+      tx.set(usernameRef, {'uid': uid});
+      // Save on user doc
+      tx.set(_firestore.collection('users').doc(uid),
+          {'username': trimmed}, SetOptions(merge: true));
+      return true;
+    });
+
+    if (!available) throw const UsernameUnavailableException();
+  }
+
+  Stream<String?> get usernameStream {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return const Stream.empty();
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((doc) => doc.data()?['username'] as String?);
+  }
+
   Future<void> updatePassword(String currentPassword, String newPassword) async {
     final user = _auth.currentUser;
     if (user == null || user.email == null) throw FirebaseAuthException(code: 'no-user');
@@ -82,6 +150,47 @@ class AuthService {
     );
     await user.reauthenticateWithCredential(credential);
     await user.updatePassword(newPassword);
+  }
+
+  Future<void> deleteAccount({String? password}) async {
+    final user = _auth.currentUser;
+    if (user == null) throw FirebaseAuthException(code: 'no-user');
+
+    final isGoogleUser =
+        user.providerData.any((p) => p.providerId == 'google.com');
+
+    // Re-authenticate before deletion (Firebase requirement)
+    if (isGoogleUser) {
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) throw FirebaseAuthException(code: 'cancelled');
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      await user.reauthenticateWithCredential(credential);
+    } else {
+      if (password == null || password.isEmpty) {
+        throw FirebaseAuthException(code: 'missing-password');
+      }
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: password,
+      );
+      await user.reauthenticateWithCredential(credential);
+    }
+
+    // Delete Firestore data then the auth account
+    final uid = user.uid;
+    // Also clean up the username reservation if one exists
+    final userDoc = await _firestore.collection('users').doc(uid).get();
+    final existingUsername = userDoc.data()?['username'] as String?;
+    if (existingUsername != null && existingUsername.isNotEmpty) {
+      await _firestore.collection('usernames').doc(existingUsername).delete();
+    }
+    await _firestore.collection('users').doc(uid).delete();
+    if (isGoogleUser) await _googleSignIn.signOut();
+    await user.delete();
   }
 
   Future<UserCredential?> signInWithGoogle() async {
@@ -98,4 +207,8 @@ class AuthService {
 
     return await _auth.signInWithCredential(credential);
   }
+}
+
+class UsernameUnavailableException implements Exception {
+  const UsernameUnavailableException();
 }

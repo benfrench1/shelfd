@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
+import '../models/achievement.dart';
 import '../models/book_review.dart';
 import '../services/storage_service.dart';
+import 'account_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -21,8 +25,10 @@ class ProfileScreen extends StatelessWidget {
               // Shared header
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(
-                  children: [
+                child: SizedBox(
+                  height: 40,
+                  child: Row(
+                    children: [
                     const Icon(Icons.person, size: 28),
                     const SizedBox(width: 8),
                     Text(
@@ -40,8 +46,25 @@ class ProfileScreen extends StatelessWidget {
                         style: TextStyle(fontSize: 19),
                       ),
                     ),
-                    const SizedBox(width: 96),
+                    SizedBox(
+                      width: 96,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: IconButton(
+                          icon: const Icon(Icons.settings_outlined),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const AccountSettingsScreen(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
+                ),
                 ),
               ),
 
@@ -82,18 +105,36 @@ class _UserProfileTab extends StatefulWidget {
 class _UserProfileTabState extends State<_UserProfileTab> {
   final _authService = AuthService();
   String? _avatarAsset;
+  String? _username;
+  StreamSubscription<String?>? _usernameSub;
   List<String> _avatarAssets = [];
+  int _bookCount = 0;
 
   @override
   void initState() {
     super.initState();
     _loadAvatar();
     _loadAvatarAssets();
+    _loadBookCount();
+    _usernameSub = _authService.usernameStream.listen((u) {
+      if (mounted) setState(() => _username = u);
+    });
+  }
+
+  @override
+  void dispose() {
+    _usernameSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadAvatar() async {
     final asset = await _authService.getAvatarAsset();
     if (mounted) setState(() => _avatarAsset = asset);
+  }
+
+  Future<void> _loadBookCount() async {
+    final reviews = await StorageService.getReviews();
+    if (mounted) setState(() => _bookCount = reviews.length);
   }
 
   Future<void> _loadAvatarAssets() async {
@@ -215,6 +256,24 @@ class _UserProfileTabState extends State<_UserProfileTab> {
     );
   }
 
+  String _ordinal(int day) {
+    if (day >= 11 && day <= 13) return '${day}th';
+    switch (day % 10) {
+      case 1: return '${day}st';
+      case 2: return '${day}nd';
+      case 3: return '${day}rd';
+      default: return '${day}th';
+    }
+  }
+
+  String _formatJoinDate(DateTime dt) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    return '${_ordinal(dt.day)} ${months[dt.month - 1]} ${dt.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -259,7 +318,6 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     icon: const Icon(Icons.edit, size: 16, color: Colors.white),
-                    tooltip: 'Change profile picture',
                     onPressed: _showAvatarPicker,
                   ),
                 ),
@@ -268,6 +326,32 @@ class _UserProfileTabState extends State<_UserProfileTab> {
           ),
 
           const SizedBox(height: 24),
+
+          // Join date
+          if (user?.metadata.creationTime != null)
+            Text(
+              'Date joined: ${_formatJoinDate(user!.metadata.creationTime!.toLocal())}',
+              style: const TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+
+          const SizedBox(height: 16),
+
+          // Username card (only shown if set)
+          if (_username?.isNotEmpty == true) ...[  
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Username',
+                    style: TextStyle(fontSize: 13, color: Colors.grey)),
+                subtitle: Text(
+                  _username!,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
 
           // Email card
           Card(
@@ -281,128 +365,41 @@ class _UserProfileTabState extends State<_UserProfileTab> {
             ),
           ),
 
-          const SizedBox(height: 8),
-
-          // Verified badge
-          Card(
-            child: ListTile(
-              leading: Icon(
-                user?.emailVerified == true
-                    ? Icons.verified_user_outlined
-                    : Icons.warning_amber_outlined,
-                color: user?.emailVerified == true ? Colors.green : Colors.orange,
-              ),
-              title: Text(
-                user?.emailVerified == true
-                    ? 'Email verified'
-                    : 'Email not verified',
-                style: TextStyle(
-                  color: user?.emailVerified == true ? Colors.green : Colors.orange,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
-
+          // ── Achievements ──────────────────────────────────────────────────
           const SizedBox(height: 32),
-
-          // Sign out
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Sign Out'),
-                    content: const Text('Are you sure you want to sign out?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text('No'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: const Text(
-                          'Yes',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirm == true) {
-                  await _authService.signOut();
-                }
-              },
-              icon: const Icon(Icons.logout, color: Colors.white),
-              label: const Text(
-                'Sign Out',
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepOrange,
-                padding: const EdgeInsets.all(16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Achievements',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xff5C3A1E),
               ),
             ),
           ),
-
-          // Change Password — only for email/password users
-          if (user?.providerData.any((p) => p.providerId == 'password') == true) ...
-            [
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    final success = await showDialog<bool>(
-                      context: context,
-                      builder: (dialogContext) =>
-                          _ChangePasswordDialog(authService: _authService),
-                    );
-                    if (success == true) {
-                      messenger
-                        ..hideCurrentSnackBar()
-                        ..showSnackBar(
-                          SnackBar(
-                            content: const Row(
-                              children: [
-                                Icon(Icons.check_circle_outline,
-                                    color: Colors.white, size: 20),
-                                SizedBox(width: 10),
-                                Text('Password updated successfully!'),
-                              ],
-                            ),
-                            duration: const Duration(seconds: 4),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                            margin: const EdgeInsets.all(16),
-                          ),
-                        );
-                    }
-                  },
-                  icon: const Icon(Icons.lock_reset),
-                  label: const Text(
-                    'Change Password',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xff5C3A1E),
-                    side: const BorderSide(color: Color(0xff5C3A1E)),
-                    padding: const EdgeInsets.all(16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Tap a medal to see its name.',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 16,
+            children: kAchievements.map((a) {
+              final unlocked = _bookCount >= a.threshold;
+              return _AchievementMedal(
+                label: a.label,
+                emoji: a.emoji,
+                unlocked: unlocked,
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -583,6 +580,7 @@ class _StatsTab extends StatefulWidget {
 
 class _StatsTabState extends State<_StatsTab> {
   List<BookReview> reviews = [];
+  bool _booksExpanded = false;
 
   @override
   void initState() {
@@ -638,51 +636,76 @@ class _StatsTabState extends State<_StatsTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Card(
-            child: ListTile(
-              leading: const Icon(Icons.library_books),
-              title: const Text("Total Books Completed"),
-              trailing: Text(
-                totalCompleted.toString(),
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => setState(() => _booksExpanded = !_booksExpanded),
+              child: ListTile(
+                leading: const Icon(Icons.library_books),
+                title: const Text("Total Books Completed"),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      totalCompleted.toString(),
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: _booksExpanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(Icons.expand_more),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Card(
-            margin: const EdgeInsets.symmetric(vertical: 3),
-            child: ListTile(
-              dense: true,
-              leading: const Icon(Icons.menu_book, size: 20),
-              title: const Text("Total Books Read", style: TextStyle(fontSize: 13)),
-              trailing: Text(
-                totalPhysical.toString(),
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          Card(
-            margin: const EdgeInsets.symmetric(vertical: 3),
-            child: ListTile(
-              dense: true,
-              leading: const Icon(Icons.headphones, size: 20),
-              title: const Text("Total Books Listened To", style: TextStyle(fontSize: 13)),
-              trailing: Text(
-                totalAudiobook.toString(),
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          Card(
-            margin: const EdgeInsets.symmetric(vertical: 3),
-            child: ListTile(
-              dense: true,
-              leading: const Icon(Icons.grain, size: 20),
-              title: const Text("Total Books Read Braille", style: TextStyle(fontSize: 13)),
-              trailing: Text(
-                totalBraille.toString(),
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              ),
-            ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            child: _booksExpanded
+                ? Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      Card(
+                        margin: const EdgeInsets.symmetric(vertical: 3),
+                        child: ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.menu_book, size: 20),
+                          title: const Text("Total Books Read", style: TextStyle(fontSize: 13)),
+                          trailing: Text(
+                            totalPhysical.toString(),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      Card(
+                        margin: const EdgeInsets.symmetric(vertical: 3),
+                        child: ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.headphones, size: 20),
+                          title: const Text("Total Books Listened To", style: TextStyle(fontSize: 13)),
+                          trailing: Text(
+                            totalAudiobook.toString(),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      Card(
+                        margin: const EdgeInsets.symmetric(vertical: 3),
+                        child: ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.grain, size: 20),
+                          title: const Text("Total Books Read Braille", style: TextStyle(fontSize: 13)),
+                          trailing: Text(
+                            totalBraille.toString(),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
           ),
           const SizedBox(height: 20),
           const Text(
@@ -734,6 +757,145 @@ class _StatsTabState extends State<_StatsTab> {
                   ),
                 ),
               )),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Achievements ─────────────────────────────────────────────────────────────
+
+// Achievement definitions live in lib/models/achievement.dart (kAchievements).
+
+class _AchievementMedal extends StatelessWidget {
+  final String label;
+  final String emoji;
+  final bool unlocked;
+
+  const _AchievementMedal({
+    required this.label,
+    required this.emoji,
+    required this.unlocked,
+  });
+
+  void _showEnlarged(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      barrierDismissible: true,
+      builder: (_) => GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: GestureDetector(
+            onTap: () {}, // prevent tap on medal from closing
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 160,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: unlocked
+                        ? const Color(0xffFFF3CD)
+                        : Colors.grey.shade200,
+                    border: Border.all(
+                      color: unlocked
+                          ? const Color(0xffD4A017)
+                          : Colors.grey.shade400,
+                      width: 5,
+                    ),
+                    boxShadow: unlocked
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xffD4A017).withOpacity(0.5),
+                              blurRadius: 24,
+                              offset: const Offset(0, 4),
+                            )
+                          ]
+                        : null,
+                  ),
+                  child: Center(
+                    child: unlocked
+                        ? Text(emoji, style: const TextStyle(fontSize: 72))
+                        : const Icon(Icons.lock_outline,
+                            size: 72, color: Colors.grey),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: unlocked ? Colors.white : Colors.grey.shade400,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _medalCircle({required double size, required double iconSize, required double fontSize}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: unlocked ? const Color(0xffFFF3CD) : Colors.grey.shade200,
+        border: Border.all(
+          color: unlocked ? const Color(0xffD4A017) : Colors.grey.shade400,
+          width: 2.5,
+        ),
+        boxShadow: unlocked
+            ? [
+                BoxShadow(
+                  color: const Color(0xffD4A017).withOpacity(0.35),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                )
+              ]
+            : null,
+      ),
+      child: Center(
+        child: unlocked
+            ? Text(emoji, style: TextStyle(fontSize: fontSize))
+            : Icon(Icons.lock_outline, size: iconSize, color: Colors.grey),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showEnlarged(context),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _medalCircle(size: 64, iconSize: 28, fontSize: 28),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: 72,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                color: unlocked ? const Color(0xff5C3A1E) : Colors.grey,
+                fontWeight: unlocked ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
         ],
       ),
     );

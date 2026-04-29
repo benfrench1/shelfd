@@ -107,27 +107,30 @@ class _WishlistScreenState extends State<WishlistScreen> {
             // Header row
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.travel_explore, size: 28),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Shelfd',
-                    style: GoogleFonts.fredoka(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xff5C3A1E),
+              child: SizedBox(
+                height: 40,
+                child: Row(
+                  children: [
+                    const Icon(Icons.travel_explore, size: 28),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Shelfd',
+                      style: GoogleFonts.fredoka(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xff5C3A1E),
+                      ),
                     ),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Future Reads',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 19),
+                    const Expanded(
+                      child: Text(
+                        'Future Reads',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 19),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 96),
-                ],
+                    const SizedBox(width: 96),
+                  ],
+                ),
               ),
             ),
 

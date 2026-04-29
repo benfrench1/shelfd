@@ -257,44 +257,47 @@ class _LogScreenState extends State<LogScreen> {
             // Header row
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.menu_book, size: 28),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Shelfd',
-                    style: GoogleFonts.fredoka(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xff5C3A1E),
-                    ),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Reading Log',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 19,
+              child: SizedBox(
+                height: 40,
+                child: Row(
+                  children: [
+                    const Icon(Icons.menu_book, size: 28),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Shelfd',
+                      style: GoogleFonts.fredoka(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xff5C3A1E),
                       ),
                     ),
-                  ),
-                  DropdownButton<String>(
-                    value: sortOption,
-                    isDense: true,
-                    underline: const SizedBox(),
-                    onChanged: (value) {
-                      setState(() {
-                        sortOption = value!;
-                        sortReviews();
-                      });
-                    },
-                    items: const [
-                      DropdownMenuItem(value: 'date', child: Text('Sort: Date')),
-                      DropdownMenuItem(value: 'alphabetical', child: Text('Sort: A–Z')),
-                      DropdownMenuItem(value: 'rating', child: Text('Sort: Rating')),
-                    ],
-                  ),
-                ],
+                    const Expanded(
+                      child: Text(
+                        'Reading Log',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 19,
+                        ),
+                      ),
+                    ),
+                    DropdownButton<String>(
+                      value: sortOption,
+                      isDense: true,
+                      underline: const SizedBox(),
+                      onChanged: (value) {
+                        setState(() {
+                          sortOption = value!;
+                          sortReviews();
+                        });
+                      },
+                      items: const [
+                        DropdownMenuItem(value: 'date', child: Text('Sort: Date')),
+                        DropdownMenuItem(value: 'alphabetical', child: Text('Sort: A–Z')),
+                        DropdownMenuItem(value: 'rating', child: Text('Sort: Rating')),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
 
