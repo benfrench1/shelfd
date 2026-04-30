@@ -311,9 +311,35 @@ class _ReviewScreenState extends State<ReviewScreen> {
           children: [
             if (getCoverUrl(book.coverId) != null)
               Center(
-                child: Image.network(
-                  getCoverUrl(book.coverId)!,
-                  height: 160,
+                child: GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      barrierColor: Colors.black87,
+                      barrierDismissible: true,
+                      builder: (ctx) => GestureDetector(
+                        onTap: () => Navigator.of(ctx).pop(),
+                        behavior: HitTestBehavior.opaque,
+                        child: Center(
+                          child: GestureDetector(
+                            onTap: () {},
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                getCoverUrl(book.coverId)!,
+                                height: 360,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  child: Image.network(
+                    getCoverUrl(book.coverId)!,
+                    height: 160,
+                  ),
                 ),
               ),
 

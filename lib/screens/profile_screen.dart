@@ -378,19 +378,13 @@ class _UserProfileTabState extends State<_UserProfileTab> {
               ),
             ),
           ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Tap a medal to see its name.',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
-          ),
           const SizedBox(height: 16),
           Wrap(
             spacing: 12,
             runSpacing: 16,
-            children: kAchievements.map((a) {
+            children: kAchievements
+                .where((a) => !a.hidden || _bookCount >= a.threshold)
+                .map((a) {
               final unlocked = _bookCount >= a.threshold;
               return _AchievementMedal(
                 label: a.label,

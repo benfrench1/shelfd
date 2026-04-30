@@ -397,7 +397,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 24),
 
           // ── Sign Out ────────────────────────────────────
           SizedBox(
@@ -437,7 +437,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepOrange,
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
