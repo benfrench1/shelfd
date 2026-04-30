@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../models/achievement.dart';
 import '../models/book.dart';
 import '../models/book_review.dart';
 import '../services/storage_service.dart';
@@ -139,18 +140,115 @@ class _ReviewScreenState extends State<ReviewScreen> {
       format: _format,
     );
 
+    final isNewReview = widget.reviewIndex == null;
+
+    // Capture count before saving so we can detect newly crossed thresholds
+    final countBefore = isNewReview
+        ? (await StorageService.getReviews()).length
+        : 0;
+
     if (widget.reviewIndex != null) {
-      await StorageService.updateReview(
-        widget.reviewIndex!,
-        review,
-      );
+      await StorageService.updateReview(widget.reviewIndex!, review);
     } else {
       await StorageService.saveReview(review);
     }
 
-    if (mounted) {
-      Navigator.pop(context);
+    if (!mounted) return;
+
+    // For new reviews, check if saving just crossed an achievement threshold
+    if (isNewReview) {
+      final countAfter = countBefore + 1;
+      final unlocked = kAchievements.where(
+        (a) => a.threshold > 0 && a.threshold == countAfter,
+      );
+      for (final achievement in unlocked) {
+        await _showAchievementDialog(achievement);
+        if (!mounted) return;
+      }
     }
+
+    Navigator.pop(context);
+  }
+
+  Future<void> _showAchievementDialog(Achievement achievement) async {
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      barrierDismissible: true,
+      builder: (ctx) => GestureDetector(
+        onTap: () => Navigator.of(ctx).pop(),
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: GestureDetector(
+            onTap: () {}, // prevent tap on medal from closing
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Achievement Unlocked!',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  width: 160,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xffFFF3CD),
+                    border: Border.all(
+                      color: const Color(0xffD4A017),
+                      width: 5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xffD4A017).withOpacity(0.55),
+                        blurRadius: 32,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      achievement.emoji,
+                      style: const TextStyle(fontSize: 72),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Text(
+                    achievement.label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text(
+                    'Awesome!',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xffD4A017),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   String? getCoverUrl(int? id) {
@@ -213,9 +311,35 @@ class _ReviewScreenState extends State<ReviewScreen> {
           children: [
             if (getCoverUrl(book.coverId) != null)
               Center(
-                child: Image.network(
-                  getCoverUrl(book.coverId)!,
-                  height: 160,
+                child: GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      barrierColor: Colors.black87,
+                      barrierDismissible: true,
+                      builder: (ctx) => GestureDetector(
+                        onTap: () => Navigator.of(ctx).pop(),
+                        behavior: HitTestBehavior.opaque,
+                        child: Center(
+                          child: GestureDetector(
+                            onTap: () {},
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                getCoverUrl(book.coverId)!,
+                                height: 360,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  child: Image.network(
+                    getCoverUrl(book.coverId)!,
+                    height: 160,
+                  ),
                 ),
               ),
 

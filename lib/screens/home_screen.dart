@@ -237,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             title: review.title,
                             subtitle: review.author,
                             footer:
-                                "${review.rating.toStringAsFixed(1)} ⭐",
+                                "${review.rating % 1 == 0 ? review.rating.toInt() : review.rating.toStringAsFixed(1)}/10 ⭐",
                             coverUrl: url,
                             isFavourite: review.isFavourite,
                           );

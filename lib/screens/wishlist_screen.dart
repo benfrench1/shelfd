@@ -107,27 +107,30 @@ class _WishlistScreenState extends State<WishlistScreen> {
             // Header row
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.travel_explore, size: 28),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Shelfd',
-                    style: GoogleFonts.fredoka(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xff5C3A1E),
+              child: SizedBox(
+                height: 40,
+                child: Row(
+                  children: [
+                    const Icon(Icons.travel_explore, size: 28),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Shelfd',
+                      style: GoogleFonts.fredoka(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xff5C3A1E),
+                      ),
                     ),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Future Reads',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 19),
+                    const Expanded(
+                      child: Text(
+                        'Future Reads',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 19),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 96),
-                ],
+                    const SizedBox(width: 96),
+                  ],
+                ),
               ),
             ),
 
@@ -152,12 +155,19 @@ class _WishlistScreenState extends State<WishlistScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    "Search for books and tap + to add them.",
-                    style: TextStyle(
-                      color: Colors.black38,
-                      fontSize: 13,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Search for books and tap ",
+                        style: TextStyle(color: Colors.black38, fontSize: 13),
+                      ),
+                      const Icon(Icons.bookmark_add_outlined, size: 16, color: Colors.black38),
+                      const Text(
+                        " to add them.",
+                        style: TextStyle(color: Colors.black38, fontSize: 13),
+                      ),
+                    ],
                   ),
                 ],
               ),
