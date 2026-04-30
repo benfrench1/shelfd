@@ -219,7 +219,7 @@ class _LogScreenState extends State<LogScreen> {
             children: [
               Text(review.author),
               const SizedBox(height: 2),
-              Text("${review.rating.toStringAsFixed(1)} ⭐"),
+              Text("${review.rating % 1 == 0 ? review.rating.toInt() : review.rating.toStringAsFixed(1)}/10 ⭐"),
             ],
           ),
           children: [

@@ -155,12 +155,19 @@ class _WishlistScreenState extends State<WishlistScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    "Search for books and tap + to add them.",
-                    style: TextStyle(
-                      color: Colors.black38,
-                      fontSize: 13,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Search for books and tap ",
+                        style: TextStyle(color: Colors.black38, fontSize: 13),
+                      ),
+                      const Icon(Icons.bookmark_add_outlined, size: 16, color: Colors.black38),
+                      const Text(
+                        " to add them.",
+                        style: TextStyle(color: Colors.black38, fontSize: 13),
+                      ),
+                    ],
                   ),
                 ],
               ),

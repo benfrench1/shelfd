@@ -602,7 +602,7 @@ class _StatsTabState extends State<_StatsTab> {
     }
     final sorted = counts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    return sorted.take(5).toList();
+    return sorted.take(3).toList();
   }
 
   List<BookReview> get topRated {
@@ -730,7 +730,7 @@ class _StatsTabState extends State<_StatsTab> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.star, color: Colors.amber, size: 18),
-                      Text(b.rating.toString()),
+                      Text('${b.rating % 1 == 0 ? b.rating.toInt() : b.rating.toStringAsFixed(1)}/10'),
                     ],
                   ),
                 ),

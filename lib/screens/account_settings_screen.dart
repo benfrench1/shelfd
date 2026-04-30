@@ -47,171 +47,22 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   // ── Change Password ─────────────────────────────────────────────────────────
 
   void _showChangePasswordSheet() {
-    final currentCtrl = TextEditingController();
-    final newCtrl = TextEditingController();
-    final confirmCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    bool obscureCurrent = true;
-    bool obscureNew = true;
-    bool obscureConfirm = true;
-    bool loading = false;
-    String? errorMsg;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (sheetCtx) => StatefulBuilder(
-        builder: (sheetCtx, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 32,
-          ),
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Change Password',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: currentCtrl,
-                  obscureText: obscureCurrent,
-                  decoration: InputDecoration(
-                    labelText: 'Current password',
-                    prefixIcon: const Icon(Icons.lock_outlined),
-                    suffixIcon: IconButton(
-                      icon: Icon(obscureCurrent
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined),
-                      onPressed: () =>
-                          setSheetState(() => obscureCurrent = !obscureCurrent),
-                    ),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: newCtrl,
-                  obscureText: obscureNew,
-                  decoration: InputDecoration(
-                    labelText: 'New password',
-                    prefixIcon: const Icon(Icons.lock_outlined),
-                    suffixIcon: IconButton(
-                      icon: Icon(obscureNew
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined),
-                      onPressed: () =>
-                          setSheetState(() => obscureNew = !obscureNew),
-                    ),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Required';
-                    if (v.length < 6) return 'Minimum 6 characters';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: confirmCtrl,
-                  obscureText: obscureConfirm,
-                  decoration: InputDecoration(
-                    labelText: 'Confirm new password',
-                    prefixIcon: const Icon(Icons.lock_outlined),
-                    suffixIcon: IconButton(
-                      icon: Icon(obscureConfirm
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined),
-                      onPressed: () =>
-                          setSheetState(() => obscureConfirm = !obscureConfirm),
-                    ),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Required';
-                    if (v != newCtrl.text) return 'Passwords do not match';
-                    return null;
-                  },
-                ),
-                if (errorMsg != null) ...[
-                  const SizedBox(height: 12),
-                  Text(errorMsg!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center),
-                ],
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepOrange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.all(14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: loading
-                      ? null
-                      : () async {
-                          if (!formKey.currentState!.validate()) return;
-                          setSheetState(() {
-                            loading = true;
-                            errorMsg = null;
-                          });
-                          try {
-                            await _authService.updatePassword(
-                              currentCtrl.text,
-                              newCtrl.text,
-                            );
-                            if (mounted) {
-                              Navigator.of(sheetCtx).pop();
-                              ScaffoldMessenger.of(context)
-                                ..hideCurrentSnackBar()
-                                ..showSnackBar(const SnackBar(
-                                  content: Text('Password updated successfully'),
-                                  behavior: SnackBarBehavior.floating,
-                                ));
-                            }
-                          } on FirebaseAuthException catch (e) {
-                            setSheetState(() {
-                              loading = false;
-                              errorMsg = e.code == 'wrong-password' ||
-                                      e.code == 'invalid-credential'
-                                  ? 'Current password is incorrect.'
-                                  : 'Failed to update password. Please try again.';
-                            });
-                          }
-                        },
-                  child: loading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Text('Update Password',
-                          style: TextStyle(fontSize: 16)),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ).whenComplete(() {
-      currentCtrl.dispose();
-      newCtrl.dispose();
-      confirmCtrl.dispose();
+      builder: (_) => _ChangePasswordSheet(authService: _authService),
+    ).then((success) {
+      if (success == true && mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(
+            content: Text('Password updated successfully'),
+            behavior: SnackBarBehavior.floating,
+          ));
+      }
     });
   }
 
@@ -467,6 +318,176 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Change Password Sheet ─────────────────────────────────────────────────────
+// Proper StatefulWidget — avoids the Android animation timing assertion that
+// fires when StatefulBuilder + whenComplete disposes controllers too early.
+
+class _ChangePasswordSheet extends StatefulWidget {
+  final AuthService authService;
+  const _ChangePasswordSheet({required this.authService});
+
+  @override
+  State<_ChangePasswordSheet> createState() => _ChangePasswordSheetState();
+}
+
+class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _currentCtrl = TextEditingController();
+  final _newCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+  bool _loading = false;
+  String? _errorMsg;
+
+  @override
+  void dispose() {
+    _currentCtrl.dispose();
+    _newCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Change Password',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _currentCtrl,
+              obscureText: _obscureCurrent,
+              decoration: InputDecoration(
+                labelText: 'Current password',
+                prefixIcon: const Icon(Icons.lock_outlined),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureCurrent
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined),
+                  onPressed: () =>
+                      setState(() => _obscureCurrent = !_obscureCurrent),
+                ),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _newCtrl,
+              obscureText: _obscureNew,
+              decoration: InputDecoration(
+                labelText: 'New password',
+                prefixIcon: const Icon(Icons.lock_outlined),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureNew
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined),
+                  onPressed: () =>
+                      setState(() => _obscureNew = !_obscureNew),
+                ),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Required';
+                if (v.length < 6) return 'Minimum 6 characters';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _confirmCtrl,
+              obscureText: _obscureConfirm,
+              decoration: InputDecoration(
+                labelText: 'Confirm new password',
+                prefixIcon: const Icon(Icons.lock_outlined),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureConfirm
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined),
+                  onPressed: () =>
+                      setState(() => _obscureConfirm = !_obscureConfirm),
+                ),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Required';
+                if (v != _newCtrl.text) return 'Passwords do not match';
+                return null;
+              },
+            ),
+            if (_errorMsg != null) ...[
+              const SizedBox(height: 12),
+              Text(_errorMsg!,
+                  style: const TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center),
+            ],
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.all(14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: _loading
+                  ? null
+                  : () async {
+                      if (!_formKey.currentState!.validate()) return;
+                      setState(() {
+                        _loading = true;
+                        _errorMsg = null;
+                      });
+                      try {
+                        await widget.authService.updatePassword(
+                          _currentCtrl.text,
+                          _newCtrl.text,
+                        );
+                        if (mounted) Navigator.of(context).pop(true);
+                      } on FirebaseAuthException catch (e) {
+                        setState(() {
+                          _loading = false;
+                          _errorMsg = e.code == 'wrong-password' ||
+                                  e.code == 'invalid-credential'
+                              ? 'Current password is incorrect.'
+                              : 'Failed to update password. Please try again.';
+                        });
+                      }
+                    },
+              child: _loading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Text('Update Password',
+                      style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
       ),
     );
   }
