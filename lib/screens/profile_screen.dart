@@ -8,7 +8,9 @@ import '../services/auth_service.dart';
 import '../models/achievement.dart';
 import '../models/book_review.dart';
 import '../services/storage_service.dart';
+import '../services/friend_service.dart';
 import 'account_settings_screen.dart';
+import 'friends_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -109,6 +111,8 @@ class _UserProfileTabState extends State<_UserProfileTab> {
   StreamSubscription<String?>? _usernameSub;
   List<String> _avatarAssets = [];
   int _bookCount = 0;
+  int _pendingRequestCount = 0;
+  StreamSubscription? _requestSub;
 
   @override
   void initState() {
@@ -119,11 +123,18 @@ class _UserProfileTabState extends State<_UserProfileTab> {
     _usernameSub = _authService.usernameStream.listen((u) {
       if (mounted) setState(() => _username = u);
     });
+    _requestSub = FriendService.receivedRequestsStream().listen((snap) {
+      if (!mounted) return;
+      final pending =
+          snap.docs.where((d) => d.data()['status'] != 'accepted').length;
+      setState(() => _pendingRequestCount = pending);
+    });
   }
 
   @override
   void dispose() {
     _usernameSub?.cancel();
+    _requestSub?.cancel();
     super.dispose();
   }
 
@@ -392,6 +403,70 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                 unlocked: unlocked,
               );
             }).toList(),
+          ),
+          const SizedBox(height: 24),
+
+          // ── Friends ──────────────────────────────────────────────────────
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Friends',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xff5C3A1E),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const FriendsScreen()),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    vertical: 16, horizontal: 20),
+                child: Row(
+                  children: [
+                    const Text('👥',
+                        style: TextStyle(fontSize: 32)),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Text(
+                        'View Friends',
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    if (_pendingRequestCount > 0) ...
+                      [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.deepOrange,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '$_pendingRequestCount',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                    Icon(Icons.arrow_forward_ios,
+                        size: 16,
+                        color: Colors.grey.shade500),
+                  ],
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 24),
         ],

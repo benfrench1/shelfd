@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
@@ -12,16 +13,23 @@ class AccountSettingsScreen extends StatefulWidget {
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final _authService = AuthService();
   String? _username;
+  PrivacyLevel _privacyLevel = PrivacyLevel.public;
 
   @override
   void initState() {
     super.initState();
     _loadUsername();
+    _loadPrivacy();
   }
 
   Future<void> _loadUsername() async {
     final u = await _authService.getUsername();
     if (mounted) setState(() => _username = u);
+  }
+
+  Future<void> _loadPrivacy() async {
+    final level = await _authService.getPrivacyLevel();
+    if (mounted) setState(() => _privacyLevel = level);
   }  bool get _isGoogleUser =>
       FirebaseAuth.instance.currentUser?.providerData
           .any((p) => p.providerId == 'google.com') ??
@@ -126,8 +134,82 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
   }
 
-  void _showPasswordConfirmDeleteSheet() async {
-    // Use a proper StatefulWidget so the TextEditingController is disposed
+  // ── Privacy ─────────────────────────────────────────────────────────────────
+
+  void _showPrivacySheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Text('Profile Privacy',
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 4),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                      'Control who can view your profile information.',
+                      style: TextStyle(fontSize: 13, color: Colors.grey)),
+                ),
+                const SizedBox(height: 16),
+                for (final level in PrivacyLevel.values)
+                  ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 24),
+                    leading: Icon(
+                      level == PrivacyLevel.public
+                          ? Icons.public
+                          : level == PrivacyLevel.friendsOnly
+                              ? Icons.group_outlined
+                              : Icons.lock_outline,
+                      color: _privacyLevel == level
+                          ? Colors.deepOrange
+                          : null,
+                    ),
+                    title: Text(level.label,
+                        style: TextStyle(
+                          fontWeight: _privacyLevel == level
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: _privacyLevel == level
+                              ? Colors.deepOrange
+                              : null,
+                        )),
+                    subtitle: Text(level.description,
+                        style: const TextStyle(fontSize: 12)),
+                    trailing: _privacyLevel == level
+                        ? const Icon(Icons.check_circle,
+                            color: Colors.deepOrange)
+                        : null,
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      await _authService.setPrivacyLevel(level);
+                      if (mounted) {
+                        setState(() => _privacyLevel = level);
+                      }
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showPasswordConfirmDeleteSheet() async {    // Use a proper StatefulWidget so the TextEditingController is disposed
     // by Flutter only after the route animation fully completes, not earlier.
     final password = await showModalBottomSheet<String>(
       context: context,
@@ -245,6 +327,30 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 icon: const Icon(Icons.edit_outlined),
                 onPressed: _showEditUsernameSheet,
               ),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // ── Privacy ────────────────────────────────────────────────
+          Card(
+            child: ListTile(
+              leading: Icon(
+                _privacyLevel == PrivacyLevel.public
+                    ? Icons.public
+                    : _privacyLevel == PrivacyLevel.friendsOnly
+                        ? Icons.group_outlined
+                        : Icons.lock_outline,
+              ),
+              title: const Text('Profile Privacy',
+                  style: TextStyle(fontSize: 13, color: Colors.grey)),
+              subtitle: Text(
+                _privacyLevel.label,
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _showPrivacySheet,
             ),
           ),
 

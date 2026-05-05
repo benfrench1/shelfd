@@ -93,3 +93,86 @@ service cloud.firestore {
     - No-cost up to 5 GB
     - Then $0.10/GB
 - For now will use a set of predefined default images whcih can be stored in `assests`
+
+
+
+
+
+Before Friends:
+```
+rules_version = '2';
+service cloud.firestore {
+  function isValidUsername(username) {
+    return username.size() > 0 && username.size() <= 30 && !username.matches("[/]");
+  }
+  match /databases/{database}/documents {
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /usernames/{username} {
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid && isValidUsername(username);
+      allow read: if request.auth != null;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+  }
+}
+```
+
+After
+```
+rules_version = '2';
+service cloud.firestore {
+  function isValidUsername(username) {
+    return username.size() > 0 && username.size() <= 30 && !username.matches("[/]");
+  }
+  match /databases/{database}/documents {
+
+    // ── User data ──────────────────────────────────────────────────────────────
+    // Full read/write access to own profile doc and all subcollections (reviews, wishlist, etc.)
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Any signed-in user can read another user's profile document
+    // (avatar, username, privacyLevel, createdAt — does not grant subcollection access)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+    }
+
+    // Any signed-in user can read another user's reviews
+    // Privacy level (public / friends only / private) is enforced client-side
+    match /users/{userId}/reviews/{reviewId} {
+      allow read: if request.auth != null;
+    }
+
+    // ── Usernames index ────────────────────────────────────────────────────────
+    match /usernames/{username} {
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && isValidUsername(username);
+      allow read:   if request.auth != null;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
+    // ── Friend requests ────────────────────────────────────────────────────────
+    match /friendRequests/{docId} {
+      // Only the two parties involved can read a request
+      allow read: if request.auth != null
+                  && (resource.data.fromUid == request.auth.uid
+                      || resource.data.toUid == request.auth.uid);
+      // Only the sender can create a request
+      allow create: if request.auth != null
+                    && request.resource.data.fromUid == request.auth.uid;
+      // Only the recipient can accept (update status to 'accepted')
+      allow update: if request.auth != null
+                    && resource.data.toUid == request.auth.uid;
+      // Either party can cancel / decline / unfriend
+      allow delete: if request.auth != null
+                    && (resource.data.fromUid == request.auth.uid
+                        || resource.data.toUid == request.auth.uid);
+    }
+  }
+}
+```
