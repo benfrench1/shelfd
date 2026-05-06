@@ -19,7 +19,8 @@ class FriendProfileScreen extends StatefulWidget {
 class _FriendProfileScreenState extends State<FriendProfileScreen> {
   List<BookReview>? _reviews; // null = loading
   bool _accessDenied = false;
-  bool _isFriend = false;
+  FriendshipStatus _friendshipStatus = FriendshipStatus.none;
+  String? _requestId;
 
   @override
   void initState() {
@@ -38,30 +39,49 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
       return;
     }
 
-    if (privacy == PrivacyLevel.friendsOnly) {
-      final result =
-          await FriendService.getFriendshipStatus(widget.friend.uid);
-      if (!mounted) return;
-      if (result.status != FriendshipStatus.accepted) {
-        setState(() {
-          _accessDenied = true;
-          _reviews = [];
-          _isFriend = false;
-        });
-        return;
-      }
-      _isFriend = true;
-    } else {
-      // Public — still check for friend status so we can show correct action
-      final result =
-          await FriendService.getFriendshipStatus(widget.friend.uid);
-      if (!mounted) return;
-      _isFriend = result.status == FriendshipStatus.accepted;
+    final result = await FriendService.getFriendshipStatus(widget.friend.uid);
+    if (!mounted) return;
+
+    if (privacy == PrivacyLevel.friendsOnly &&
+        result.status != FriendshipStatus.accepted) {
+      setState(() {
+        _accessDenied = true;
+        _reviews = [];
+        _friendshipStatus = result.status;
+        _requestId = result.requestId;
+      });
+      return;
     }
+
+    setState(() {
+      _friendshipStatus = result.status;
+      _requestId = result.requestId;
+    });
 
     final reviews = await FriendService.getFriendReviews(widget.friend.uid);
     if (!mounted) return;
     setState(() => _reviews = reviews);
+  }
+
+  Future<void> _sendRequest() async {
+    await FriendService.sendRequest(widget.friend);
+    if (!mounted) return;
+    final result = await FriendService.getFriendshipStatus(widget.friend.uid);
+    if (!mounted) return;
+    setState(() {
+      _friendshipStatus = result.status;
+      _requestId = result.requestId;
+    });
+  }
+
+  Future<void> _cancelRequest() async {
+    if (_requestId == null) return;
+    await FriendService.deleteRequest(_requestId!);
+    if (!mounted) return;
+    setState(() {
+      _friendshipStatus = FriendshipStatus.none;
+      _requestId = null;
+    });
   }
 
   @override
@@ -92,12 +112,24 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
                 ),
         ),
         body: _accessDenied
-            ? _PrivateProfileView(friend: friend, isFriendsOnly: friend.privacyLevel == PrivacyLevel.friendsOnly)
+            ? _PrivateProfileView(
+                friend: friend,
+                isFriendsOnly: friend.privacyLevel == PrivacyLevel.friendsOnly,
+                friendshipStatus: _friendshipStatus,
+                onAdd: _sendRequest,
+                onCancel: _cancelRequest,
+              )
             : reviews == null
                 ? const Center(child: CircularProgressIndicator())
                 : TabBarView(
                     children: [
-                      _OverviewTab(friend: friend, reviews: reviews),
+                      _OverviewTab(
+                        friend: friend,
+                        reviews: reviews,
+                        friendshipStatus: _friendshipStatus,
+                        onAdd: _sendRequest,
+                        onCancel: _cancelRequest,
+                      ),
                       _ReadingLogTab(reviews: reviews),
                       _StatsTab(reviews: reviews),
                     ],
@@ -112,8 +144,17 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
 class _PrivateProfileView extends StatelessWidget {
   final UserProfile friend;
   final bool isFriendsOnly;
+  final FriendshipStatus friendshipStatus;
+  final VoidCallback onAdd;
+  final VoidCallback onCancel;
 
-  const _PrivateProfileView({required this.friend, required this.isFriendsOnly});
+  const _PrivateProfileView({
+    required this.friend,
+    required this.isFriendsOnly,
+    required this.friendshipStatus,
+    required this.onAdd,
+    required this.onCancel,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -146,6 +187,14 @@ class _PrivateProfileView extends StatelessWidget {
                   TextStyle(fontSize: 14, color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
+            if (isFriendsOnly) ...[  
+              const SizedBox(height: 24),
+              _FriendActionButton(
+                status: friendshipStatus,
+                onAdd: onAdd,
+                onCancel: onCancel,
+              ),
+            ],
           ],
         ),
       ),
@@ -158,8 +207,17 @@ class _PrivateProfileView extends StatelessWidget {
 class _OverviewTab extends StatelessWidget {
   final UserProfile friend;
   final List<BookReview> reviews;
+  final FriendshipStatus friendshipStatus;
+  final VoidCallback onAdd;
+  final VoidCallback onCancel;
 
-  const _OverviewTab({required this.friend, required this.reviews});
+  const _OverviewTab({
+    required this.friend,
+    required this.reviews,
+    required this.friendshipStatus,
+    required this.onAdd,
+    required this.onCancel,
+  });
 
   String _ordinal(int day) {
     if (day >= 11 && day <= 13) return '${day}th';
@@ -232,9 +290,17 @@ class _OverviewTab extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          // Join date
+          // Friend action button (hidden when already friends)
+          if (friendshipStatus != FriendshipStatus.accepted)
+            _FriendActionButton(
+              status: friendshipStatus,
+              onAdd: onAdd,
+              onCancel: onCancel,
+            ),
+
+          const SizedBox(height: 16),
           if (friend.createdAt != null)
             Text(
               'Joined: ${_formatJoinDate(friend.createdAt!.toLocal())}',
@@ -813,5 +879,61 @@ class _ReadOnlyMedal extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// ─── Friend Action Button ────────────────────────────────────────────────────
+
+class _FriendActionButton extends StatelessWidget {
+  final FriendshipStatus status;
+  final VoidCallback onAdd;
+  final VoidCallback onCancel;
+
+  const _FriendActionButton({
+    required this.status,
+    required this.onAdd,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    switch (status) {
+      case FriendshipStatus.pendingSent:
+        return OutlinedButton.icon(
+          onPressed: onCancel,
+          icon: const Icon(Icons.hourglass_top_outlined, size: 16),
+          label: const Text('Request Sent'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.grey.shade600,
+            side: BorderSide(color: Colors.grey.shade400),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+          ),
+        );
+      case FriendshipStatus.pendingReceived:
+        return ElevatedButton.icon(
+          onPressed: onAdd,
+          icon: const Icon(Icons.check, size: 16),
+          label: const Text('Accept Request'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+          ),
+        );
+      default: // none
+        return ElevatedButton.icon(
+          onPressed: onAdd,
+          icon: const Icon(Icons.person_add_outlined, size: 16),
+          label: const Text('Add Friend'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.deepOrange,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+          ),
+        );
+    }
   }
 }

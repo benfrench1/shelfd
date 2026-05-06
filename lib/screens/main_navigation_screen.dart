@@ -82,6 +82,8 @@ class _MainNavigationScreenState
 
         selectedItemColor: Colors.deepOrange,
         unselectedItemColor: Colors.grey,
+        selectedFontSize: 11,
+        unselectedFontSize: 10,
 
         items: [
           const BottomNavigationBarItem(

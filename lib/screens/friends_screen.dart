@@ -52,12 +52,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
     _receivedSub = FriendService.receivedRequestsStream().listen((snap) {
       if (!mounted) return;
-      setState(() {
-        _receivedRequests = snap.docs
-            .map((d) => FriendRequest.fromFirestore(
-                d.id, myUid, d.data()))
-            .toList();
-      });
+      final requests = snap.docs
+          .map((d) => FriendRequest.fromFirestore(d.id, myUid, d.data()))
+          .toList();
+      setState(() => _receivedRequests = requests);
+      _fetchProfiles(requests.map((r) => r.otherUid(myUid)).whereType<String>());
     });
   }
 
@@ -243,11 +242,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                 final req = pending[i];
                                 return ListTile(
                                   contentPadding: EdgeInsets.zero,
-                                  leading: const CircleAvatar(
-                                    backgroundColor: Color(0xff5C3A1E),
-                                    child: Icon(Icons.person,
-                                        color: Colors.white),
-                                  ),
+                                  leading: _buildAvatarCircle(
+                                    _profileCache[req.otherUid(_myUid)]),
                                   title: Text(req.otherUsername(_myUid) ??
                                       'Shelfd User'),
                                   subtitle:
@@ -255,10 +251,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.check_circle,
-                                            color: Colors.green),
-                                        tooltip: 'Accept',
+                                      ElevatedButton(
                                         onPressed: () async {
                                           await _acceptRequest(req);
                                           if (mounted &&
@@ -266,11 +259,20 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                             Navigator.of(context).pop();
                                           }
                                         },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 8),
+                                          visualDensity: VisualDensity.compact,
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8)),
+                                        ),
+                                        child: const Text('Accept'),
                                       ),
-                                      IconButton(
-                                        icon: const Icon(Icons.cancel,
-                                            color: Colors.red),
-                                        tooltip: 'Decline',
+                                      const SizedBox(width: 8),
+                                      OutlinedButton(
                                         onPressed: () async {
                                           await _confirmDelete(
                                               req, 'Decline Request');
@@ -279,6 +281,18 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                             Navigator.of(context).pop();
                                           }
                                         },
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: Colors.red,
+                                          side: const BorderSide(
+                                              color: Colors.red),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 8),
+                                          visualDensity: VisualDensity.compact,
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8)),
+                                        ),
+                                        child: const Text('Decline'),
                                       ),
                                     ],
                                   ),
@@ -297,6 +311,21 @@ class _FriendsScreenState extends State<FriendsScreen> {
           },
         );
       },
+    );
+  }
+
+  CircleAvatar _buildAvatarCircle(UserProfile? profile) {
+    final ImageProvider? img = profile?.avatarAsset != null
+        ? AssetImage(profile!.avatarAsset!) as ImageProvider
+        : profile?.photoUrl != null
+            ? NetworkImage(profile!.photoUrl!)
+            : null;
+    return CircleAvatar(
+      backgroundColor: const Color(0xff5C3A1E),
+      backgroundImage: img,
+      child: img == null
+          ? const Icon(Icons.person, color: Colors.white)
+          : null,
     );
   }
 
@@ -454,10 +483,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
           else
             ..._friends.map((req) => Card(
                   child: ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: Color(0xff5C3A1E),
-                      child: Icon(Icons.person, color: Colors.white),
-                    ),
+                    leading: _buildAvatarCircle(
+                        _profileCache[req.otherUid(_myUid)]),
                     title: Text(
                         req.otherUsername(_myUid) ?? 'Shelfd User'),
                     trailing: IconButton(
