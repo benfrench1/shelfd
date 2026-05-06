@@ -77,6 +77,15 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
     });
   }
 
+  Future<void> _acceptRequest() async {
+    if (_requestId == null) return;
+    await FriendService.acceptRequest(_requestId!);
+    if (!mounted) return;
+    setState(() {
+      _friendshipStatus = FriendshipStatus.accepted;
+    });
+  }
+
   Future<void> _cancelRequest() async {
     if (_requestId == null) return;
     await FriendService.deleteRequest(_requestId!);
@@ -120,6 +129,7 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
                 isFriendsOnly: friend.privacyLevel == PrivacyLevel.friendsOnly,
                 friendshipStatus: _friendshipStatus,
                 onAdd: _sendRequest,
+                onAccept: _acceptRequest,
                 onCancel: _cancelRequest,
               )
             : reviews == null
@@ -131,6 +141,7 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
                         reviews: reviews,
                         friendshipStatus: _friendshipStatus,
                         onAdd: _sendRequest,
+                        onAccept: _acceptRequest,
                         onCancel: _cancelRequest,
                       ),
                       _ReadingLogTab(
@@ -150,6 +161,7 @@ class _PrivateProfileView extends StatelessWidget {
   final bool isFriendsOnly;
   final FriendshipStatus friendshipStatus;
   final VoidCallback onAdd;
+  final VoidCallback onAccept;
   final VoidCallback onCancel;
 
   const _PrivateProfileView({
@@ -157,6 +169,7 @@ class _PrivateProfileView extends StatelessWidget {
     required this.isFriendsOnly,
     required this.friendshipStatus,
     required this.onAdd,
+    required this.onAccept,
     required this.onCancel,
   });
 
@@ -191,11 +204,12 @@ class _PrivateProfileView extends StatelessWidget {
                   TextStyle(fontSize: 14, color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
-            if (isFriendsOnly) ...[  
+            if (isFriendsOnly) ...[
               const SizedBox(height: 24),
               _FriendActionButton(
                 status: friendshipStatus,
                 onAdd: onAdd,
+                onAccept: onAccept,
                 onCancel: onCancel,
               ),
             ],
@@ -213,6 +227,7 @@ class _OverviewTab extends StatelessWidget {
   final List<BookReview> reviews;
   final FriendshipStatus friendshipStatus;
   final VoidCallback onAdd;
+  final VoidCallback onAccept;
   final VoidCallback onCancel;
 
   const _OverviewTab({
@@ -220,6 +235,7 @@ class _OverviewTab extends StatelessWidget {
     required this.reviews,
     required this.friendshipStatus,
     required this.onAdd,
+    required this.onAccept,
     required this.onCancel,
   });
 
@@ -301,6 +317,7 @@ class _OverviewTab extends StatelessWidget {
             _FriendActionButton(
               status: friendshipStatus,
               onAdd: onAdd,
+              onAccept: onAccept,
               onCancel: onCancel,
             ),
 
@@ -1113,11 +1130,13 @@ class _ReadOnlyMedal extends StatelessWidget {
 class _FriendActionButton extends StatelessWidget {
   final FriendshipStatus status;
   final VoidCallback onAdd;
+  final VoidCallback onAccept;
   final VoidCallback onCancel;
 
   const _FriendActionButton({
     required this.status,
     required this.onAdd,
+    required this.onAccept,
     required this.onCancel,
   });
 
@@ -1138,7 +1157,7 @@ class _FriendActionButton extends StatelessWidget {
         );
       case FriendshipStatus.pendingReceived:
         return ElevatedButton.icon(
-          onPressed: onAdd,
+          onPressed: onAccept,
           icon: const Icon(Icons.check, size: 16),
           label: const Text('Accept Request'),
           style: ElevatedButton.styleFrom(

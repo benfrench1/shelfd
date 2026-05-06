@@ -175,6 +175,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
     return null;
   }
 
+  FriendRequest? _requestForUid(String uid) {
+    for (final r in [..._sentRequests, ..._receivedRequests]) {
+      if (r.otherUid(_myUid) == uid) return r;
+    }
+    return null;
+  }
+
   void _showPendingRequestsSheet() {
     showModalBottomSheet(
       context: context,
@@ -442,6 +449,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       existingStatus: _statusForUid(_searchResult!.uid),
                       onView: () => _viewProfile(_searchResult!.uid),
                       onAdd: () => _sendRequest(_searchResult!),
+                      onAccept: () {
+                        final req = _requestForUid(_searchResult!.uid);
+                        if (req != null) _acceptRequest(req);
+                      },
                     ),
                   ],
                 ],
@@ -547,12 +558,14 @@ class _SearchResultTile extends StatelessWidget {
   final FriendshipStatus? existingStatus;
   final VoidCallback onView;
   final VoidCallback onAdd;
+  final VoidCallback onAccept;
 
   const _SearchResultTile({
     required this.profile,
     required this.existingStatus,
     required this.onView,
     required this.onAdd,
+    required this.onAccept,
   });
 
   @override
@@ -570,10 +583,13 @@ class _SearchResultTile extends StatelessWidget {
                 style: TextStyle(color: Colors.white)),
             backgroundColor: Colors.grey.shade500);
       case FriendshipStatus.pendingReceived:
-        action = const Chip(
-            label: Text('Accept?',
-                style: TextStyle(color: Colors.white)),
-            backgroundColor: Colors.orange);
+        action = GestureDetector(
+          onTap: onAccept,
+          child: const Chip(
+              label: Text('Accept?',
+                  style: TextStyle(color: Colors.white)),
+              backgroundColor: Colors.green),
+        );
       default:
         action = ElevatedButton.icon(
           onPressed: onAdd,
