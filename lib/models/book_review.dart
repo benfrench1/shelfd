@@ -1,4 +1,5 @@
 class BookReview {
+  final String? id;
   final String title;
   final String author;
   final int year;
@@ -10,6 +11,7 @@ class BookReview {
   final BookFormat format;
 
   BookReview({
+    this.id,
     required this.title,
     required this.author,
     required this.year,
@@ -35,8 +37,9 @@ class BookReview {
     };
   }
 
-  factory BookReview.fromJson(Map<String, dynamic> json) {
+  factory BookReview.fromJson(Map<String, dynamic> json, {String? id}) {
     return BookReview(
+      id: id,
       title: json['title'],
       author: json['author'],
       year: json['year'],
@@ -67,6 +70,7 @@ class BookReview {
     BookFormat? format,
   }) {
     return BookReview(
+      id: id,
       title: title,
       author: author,
       year: year,

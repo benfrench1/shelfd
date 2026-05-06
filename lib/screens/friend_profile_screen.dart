@@ -5,7 +5,10 @@ import '../models/user_profile.dart';
 import '../models/achievement.dart';
 import '../models/book.dart';
 import '../services/friend_service.dart';
+import '../services/reaction_service.dart';
 import '../services/wishlist_service.dart';
+
+const _kReactionEmojis = ['❤️', '🔥', '😂', '🥹', '🤙', '🫶'];
 
 class FriendProfileScreen extends StatefulWidget {
   final UserProfile friend;
@@ -130,7 +133,8 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
                         onAdd: _sendRequest,
                         onCancel: _cancelRequest,
                       ),
-                      _ReadingLogTab(reviews: reviews),
+                      _ReadingLogTab(
+                          reviews: reviews, ownerUid: friend.uid),
                       _StatsTab(reviews: reviews),
                     ],
                   ),
@@ -368,10 +372,135 @@ class _OverviewTab extends StatelessWidget {
 
 // ─── Reading Log Tab ─────────────────────────────────────────────────────────
 
-class _ReadingLogTab extends StatelessWidget {
+class _ReadingLogTab extends StatefulWidget {
   final List<BookReview> reviews;
+  final String ownerUid;
 
-  const _ReadingLogTab({required this.reviews});
+  const _ReadingLogTab({required this.reviews, required this.ownerUid});
+
+  @override
+  State<_ReadingLogTab> createState() => _ReadingLogTabState();
+}
+
+class _ReadingLogTabState extends State<_ReadingLogTab> {
+  // reviewId → { counts, mine }
+  final Map<String, ({Map<String, int> counts, List<String> mine})>
+      _reactions = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAllReactions();
+  }
+
+  Future<void> _loadAllReactions() async {
+    final reviewsWithComments = widget.reviews
+        .where((r) => r.comment.isNotEmpty && r.id != null)
+        .toList();
+    if (reviewsWithComments.isEmpty) return;
+
+    try {
+      final results = await Future.wait(reviewsWithComments
+          .map((r) => ReactionService.getReactions(widget.ownerUid, r.id!)));
+
+      if (!mounted) return;
+      setState(() {
+        for (var i = 0; i < reviewsWithComments.length; i++) {
+          _reactions[reviewsWithComments[i].id!] = results[i];
+        }
+      });
+    } catch (_) {
+      // Reactions unavailable (e.g. Firestore rules not yet updated) — fail silently
+    }
+  }
+
+  Future<void> _toggleReaction(String reviewId, String emoji) async {
+    final current = _reactions[reviewId]?.mine ?? [];
+    try {
+      final result = await ReactionService.toggleReaction(
+          widget.ownerUid, reviewId, emoji, current);
+      if (mounted) setState(() => _reactions[reviewId] = result);
+    } catch (_) {
+      // Ignore — rules may not be updated yet
+    }
+  }
+
+  void _showEmojiPicker(BuildContext context, String reviewId) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final mine = _reactions[reviewId]?.mine ?? [];
+          final atMax = mine.length >= 3;
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Add a reaction',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(
+                    atMax
+                        ? 'You\'ve used 3/3 reactions — tap one to remove it'
+                        : 'Tap an emoji to react (up to 3)',
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: _kReactionEmojis.map((emoji) {
+                      final selected = mine.contains(emoji);
+                      final disabled = atMax && !selected;
+                      return GestureDetector(
+                        onTap: disabled
+                            ? null
+                            : () async {
+                                await _toggleReaction(reviewId, emoji);
+                                if (ctx.mounted) setSheet(() {});
+                              },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? Colors.deepOrange.withOpacity(0.12)
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: selected
+                                  ? Colors.deepOrange
+                                  : Colors.grey.shade300,
+                              width: selected ? 2 : 1,
+                            ),
+                          ),
+                          child: Center(
+                            child: Opacity(
+                              opacity: disabled ? 0.35 : 1.0,
+                              child: Text(emoji,
+                                  style: const TextStyle(fontSize: 28)),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   String? _coverUrl(int? id) {
     if (id == null) return null;
@@ -479,7 +608,7 @@ class _ReadingLogTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (reviews.isEmpty) {
+    if (widget.reviews.isEmpty) {
       return const Center(
         child: Text(
           'No books logged yet.',
@@ -489,7 +618,7 @@ class _ReadingLogTab extends StatelessWidget {
     }
 
     // Group by month/year (newest first)
-    final sorted = List<BookReview>.from(reviews)
+    final sorted = List<BookReview>.from(widget.reviews)
       ..sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
 
     final grouped = <String, List<BookReview>>{};
@@ -566,19 +695,116 @@ class _ReadingLogTab extends StatelessWidget {
                   ),
                   children: [
                     Padding(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
                       child: review.comment.isNotEmpty
                           ? Text(review.comment)
                           : const Text('No review written.',
                               style: TextStyle(
                                   fontStyle: FontStyle.italic)),
                     ),
+                    // Reaction row — only shown when a comment exists
+                    if (review.comment.isNotEmpty && review.id != null)
+                      _ReactionRow(
+                        counts: _reactions[review.id]?.counts ?? {},
+                        mine: _reactions[review.id]?.mine ?? [],
+                        onToggle: (emoji) =>
+                            _toggleReaction(review.id!, emoji),
+                        onPickerOpen: () =>
+                            _showEmojiPicker(context, review.id!),
+                      ),
+                    const SizedBox(height: 4),
                   ],
                 ),
               ),
             ),
         ],
       ],
+    );
+  }
+}
+
+// ─── Reaction Row ─────────────────────────────────────────────────────────────
+
+class _ReactionRow extends StatelessWidget {
+  final Map<String, int> counts;
+  final List<String> mine;
+  final void Function(String emoji) onToggle;
+  final VoidCallback onPickerOpen;
+
+  const _ReactionRow({
+    required this.counts,
+    required this.mine,
+    required this.onToggle,
+    required this.onPickerOpen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeEmojis =
+        _kReactionEmojis.where((e) => (counts[e] ?? 0) > 0).toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          ...activeEmojis.map((emoji) {
+            final isMine = mine.contains(emoji);
+            return GestureDetector(
+              onTap: () => onToggle(emoji),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isMine
+                      ? Colors.deepOrange.withOpacity(0.12)
+                      : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color:
+                        isMine ? Colors.deepOrange : Colors.grey.shade300,
+                  ),
+                ),
+                child: Text('$emoji ${counts[emoji]}',
+                    style: const TextStyle(fontSize: 14)),
+              ),
+            );
+          }),
+          // "Add reaction" button
+          GestureDetector(
+            onTap: onPickerOpen,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ColorFiltered(
+                    colorFilter: const ColorFilter.matrix([
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0,      0,      0,      0.5, 0,
+                    ]),
+                    child: const Text('🙂',
+                        style: TextStyle(fontSize: 14)),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(Icons.add, size: 13, color: Colors.grey.shade600),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
