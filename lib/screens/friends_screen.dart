@@ -145,6 +145,14 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   Future<void> _acceptRequest(FriendRequest req) async {
     await FriendService.acceptRequest(req.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Friend added!'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<void> _confirmDelete(FriendRequest req, String title) async {

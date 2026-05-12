@@ -81,9 +81,19 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
     if (_requestId == null) return;
     await FriendService.acceptRequest(_requestId!);
     if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Friend added!'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
     setState(() {
+      _accessDenied = false;
+      _reviews = null;
       _friendshipStatus = FriendshipStatus.accepted;
     });
+    await _loadData();
   }
 
   Future<void> _cancelRequest() async {
@@ -1145,7 +1155,7 @@ class _FriendActionButton extends StatelessWidget {
     switch (status) {
       case FriendshipStatus.pendingSent:
         return OutlinedButton.icon(
-          onPressed: onCancel,
+          onPressed: null,
           icon: const Icon(Icons.hourglass_top_outlined, size: 16),
           label: const Text('Request Sent'),
           style: OutlinedButton.styleFrom(
@@ -1156,16 +1166,15 @@ class _FriendActionButton extends StatelessWidget {
           ),
         );
       case FriendshipStatus.pendingReceived:
-        return ElevatedButton.icon(
+        return ElevatedButton(
           onPressed: onAccept,
-          icon: const Icon(Icons.check, size: 16),
-          label: const Text('Accept Request'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.deepOrange,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20)),
           ),
+          child: const Text('Accept Request ?'),
         );
       default: // none
         return ElevatedButton.icon(
