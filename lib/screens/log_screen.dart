@@ -1,9 +1,15 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/book_review.dart';
 import '../models/book.dart';
+import '../models/user_profile.dart';
+import '../services/friend_service.dart';
+import '../services/reaction_service.dart';
 import '../services/storage_service.dart';
 import 'review_screen.dart';
+
+const _kReactionEmojis = ['❤️', '🔥', '😂', '🥹', '🤙', '🫶'];
 
 class LogScreen extends StatefulWidget {
   const LogScreen({super.key});
@@ -15,6 +21,7 @@ class LogScreen extends StatefulWidget {
 class _LogScreenState extends State<LogScreen> {
   List<BookReview> reviews = [];
   String sortOption = 'date';
+  final Map<String, ({Map<String, int> counts, List<String> mine})> _reactions = {};
 
   @override
   void initState() {
@@ -29,6 +36,31 @@ class _LogScreenState extends State<LogScreen> {
       reviews = data;
       sortReviews();
     });
+
+    await _loadAllReactions();
+  }
+
+  Future<void> _loadAllReactions() async {
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    if (myUid == null) return;
+
+    final reviewsWithComments = reviews
+        .where((r) => r.comment.isNotEmpty && r.id != null)
+        .toList();
+    if (reviewsWithComments.isEmpty) return;
+
+    try {
+      final results = await Future.wait(
+          reviewsWithComments.map((r) => ReactionService.getReactions(myUid, r.id!)));
+      if (!mounted) return;
+      setState(() {
+        for (var i = 0; i < reviewsWithComments.length; i++) {
+          _reactions[reviewsWithComments[i].id!] = results[i];
+        }
+      });
+    } catch (_) {
+      // Reactions unavailable — fail silently
+    }
   }
 
   void sortReviews() {
@@ -151,6 +183,51 @@ class _LogScreenState extends State<LogScreen> {
     return "https://covers.openlibrary.org/b/id/$id-M.jpg";
   }
 
+  Widget _buildReactionRow(String reviewId) {
+    final counts = _reactions[reviewId]?.counts ?? {};
+    final activeEmojis =
+        _kReactionEmojis.where((e) => (counts[e] ?? 0) > 0).toList();
+    if (activeEmojis.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: activeEmojis.map((emoji) {
+          return GestureDetector(
+            onTap: () => _showReactorSheet(reviewId, emoji),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.deepOrange.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.deepOrange.withOpacity(0.4)),
+              ),
+              child: Text('$emoji ${counts[emoji]}',
+                  style: const TextStyle(fontSize: 14)),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  void _showReactorSheet(String reviewId, String emoji) {
+    final myUid = FirebaseAuth.instance.currentUser!.uid;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _ReactorSheet(
+        ownerUid: myUid,
+        reviewId: reviewId,
+        emoji: emoji,
+      ),
+    );
+  }
+
   IconData _formatIcon(BookFormat format) {
     switch (format) {
       case BookFormat.audiobook:
@@ -238,7 +315,9 @@ class _LogScreenState extends State<LogScreen> {
                     ),
                 ],
               ),
-            )
+            ),
+            if (review.id != null)
+              _buildReactionRow(review.id!),
           ],
         ),
       ),
@@ -339,6 +418,169 @@ class _LogScreenState extends State<LogScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Reactor Sheet ────────────────────────────────────────────────────────────
+
+class _ReactorSheet extends StatefulWidget {
+  final String ownerUid;
+  final String reviewId;
+  final String emoji;
+
+  const _ReactorSheet({
+    required this.ownerUid,
+    required this.reviewId,
+    required this.emoji,
+  });
+
+  @override
+  State<_ReactorSheet> createState() => _ReactorSheetState();
+}
+
+class _ReactorSheetState extends State<_ReactorSheet> {
+  List<({String display, bool isPrivate, bool isFriend})>? _entries;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final myUid = FirebaseAuth.instance.currentUser!.uid;
+    final reactorMap = await ReactionService.getReactorMap(
+        widget.ownerUid, widget.reviewId);
+
+    final reactorUids = reactorMap.entries
+        .where((e) => e.value.contains(widget.emoji))
+        .map((e) => e.key)
+        .toList();
+
+    final entries = <({String display, bool isPrivate, bool isFriend})>[];
+
+    for (final uid in reactorUids) {
+      if (uid == myUid) {
+        entries.add((display: 'You', isPrivate: false, isFriend: false));
+        continue;
+      }
+
+      final profile = await FriendService.getUserProfile(uid);
+      if (profile == null) {
+        entries.add((display: 'Unknown user', isPrivate: true, isFriend: false));
+        continue;
+      }
+
+      if (profile.privacyLevel == PrivacyLevel.public) {
+        final result = await FriendService.getFriendshipStatus(uid);
+        final isFriend = result.status == FriendshipStatus.accepted;
+        entries.add((
+          display: profile.username?.isNotEmpty == true
+              ? profile.username!
+              : profile.displayName,
+          isPrivate: false,
+          isFriend: isFriend,
+        ));
+      } else {
+        final result = await FriendService.getFriendshipStatus(uid);
+        if (result.status == FriendshipStatus.accepted) {
+          entries.add((
+            display: profile.username?.isNotEmpty == true
+                ? profile.username!
+                : profile.displayName,
+            isPrivate: false,
+            isFriend: true,
+          ));
+        } else {
+          entries.add((display: 'Private user · Not a friend', isPrivate: true, isFriend: false));
+        }
+      }
+    }
+
+    if (mounted) setState(() => _entries = entries);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.5,
+      minChildSize: 0.3,
+      maxChildSize: 0.75,
+      expand: false,
+      builder: (_, scrollController) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+            child: Text(
+              '${widget.emoji} reacted by',
+              style: const TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: _entries == null
+                ? const Center(child: CircularProgressIndicator())
+                : _entries!.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text('No reactions yet.',
+                            style: TextStyle(color: Colors.grey)),
+                      )
+                    : ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                        itemCount: _entries!.length,
+                        itemBuilder: (_, i) {
+                          final e = _entries![i];
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(
+                              e.isPrivate
+                                  ? Icons.lock_outline
+                                  : e.isFriend
+                                      ? Icons.people_outline
+                                      : Icons.person_outline,
+                              color: e.isPrivate
+                                  ? Colors.grey
+                                  : e.isFriend
+                                      ? Colors.deepOrange
+                                      : Colors.grey.shade600,
+                            ),
+                            title: Text(
+                              e.display,
+                              style: TextStyle(
+                                color: e.isPrivate ? Colors.grey : null,
+                                fontStyle:
+                                    e.isPrivate ? FontStyle.italic : null,
+                              ),
+                            ),
+                            trailing: e.isFriend
+                                ? Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.deepOrange.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: Colors.deepOrange.withOpacity(0.4)),
+                                    ),
+                                    child: const Text(
+                                      'Friend',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.deepOrange,
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                  )
+                                : null,
+                          );
+                        },
+                      ),
+          ),
+        ],
       ),
     );
   }

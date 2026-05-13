@@ -138,6 +138,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
       coverId: widget.book.coverId,
       isFavourite: isFavourite,
       format: _format,
+      dateAdded: widget.existingReview?.dateAdded,
     );
 
     final isNewReview = widget.reviewIndex == null;
@@ -428,6 +429,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     TextField(
                       controller: commentController,
                       maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
                       decoration: const InputDecoration(
                         labelText: "Comment",
                         border: OutlineInputBorder(),

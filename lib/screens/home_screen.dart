@@ -86,37 +86,59 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             ListTile(
               leading: Icon(
-                isAlready ? Icons.bookmark_added : Icons.bookmark_add_outlined,
-                color: Colors.deepOrange,
+                isAlready ? Icons.bookmark_remove_outlined : Icons.bookmark_add_outlined,
+                color: isAlready ? Colors.red : Colors.deepOrange,
               ),
-              title: Text(isAlready ? 'Already in Future Reads' : 'Add to Future Reads'),
+              title: Text(isAlready ? 'Remove from Future Reads' : 'Add to Future Reads'),
               subtitle: Text(book.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-              onTap: isAlready
-                  ? null
-                  : () async {
-                      Navigator.pop(context);
-                      await WishlistService.addBook(book);
-                      if (mounted) {
-                        ScaffoldMessenger.of(context)
-                          ..hideCurrentSnackBar()
-                          ..showSnackBar(
-                            SnackBar(
-                              content: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.bookmark_added, color: Colors.white, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('Added to Future Reads'),
-                                ],
-                              ),
-                              duration: const Duration(seconds: 2),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              margin: const EdgeInsets.all(16),
-                            ),
-                          );
-                      }
-                    },
+              onTap: () async {
+                Navigator.pop(context);
+                if (isAlready) {
+                  await WishlistService.removeBook(book);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context)
+                      ..hideCurrentSnackBar()
+                      ..showSnackBar(
+                        SnackBar(
+                          content: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.bookmark_remove, color: Colors.white, size: 18),
+                              SizedBox(width: 8),
+                              Text('Removed from Future Reads'),
+                            ],
+                          ),
+                          duration: const Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          margin: const EdgeInsets.all(16),
+                        ),
+                      );
+                  }
+                } else {
+                  await WishlistService.addBook(book);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context)
+                      ..hideCurrentSnackBar()
+                      ..showSnackBar(
+                        SnackBar(
+                          content: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.bookmark_added, color: Colors.white, size: 18),
+                              SizedBox(width: 8),
+                              Text('Added to Future Reads'),
+                            ],
+                          ),
+                          duration: const Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          margin: const EdgeInsets.all(16),
+                        ),
+                      );
+                  }
+                }
+              },
             ),
           ],
         ),

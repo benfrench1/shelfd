@@ -34,16 +34,19 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
   Future<void> _loadData() async {
     final privacy = widget.friend.privacyLevel;
 
-    if (privacy == PrivacyLevel.private) {
+    final result = await FriendService.getFriendshipStatus(widget.friend.uid);
+    if (!mounted) return;
+
+    if (privacy == PrivacyLevel.private &&
+        result.status != FriendshipStatus.accepted) {
       setState(() {
         _accessDenied = true;
         _reviews = [];
+        _friendshipStatus = result.status;
+        _requestId = result.requestId;
       });
       return;
     }
-
-    final result = await FriendService.getFriendshipStatus(widget.friend.uid);
-    if (!mounted) return;
 
     if (privacy == PrivacyLevel.friendsOnly &&
         result.status != FriendshipStatus.accepted) {

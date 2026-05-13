@@ -66,4 +66,15 @@ class ReactionService {
 
     return await getReactions(ownerUid, reviewId);
   }
+
+  /// Returns a map of reactorUid → list of emojis they used for a review.
+  static Future<Map<String, List<String>>> getReactorMap(
+      String ownerUid, String reviewId) async {
+    final snap = await _ref(ownerUid, reviewId).get();
+    final result = <String, List<String>>{};
+    for (final doc in snap.docs) {
+      result[doc.id] = List<String>.from(doc.data()['emojis'] ?? []);
+    }
+    return result;
+  }
 }
