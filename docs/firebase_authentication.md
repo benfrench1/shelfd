@@ -86,97 +86,6 @@ service cloud.firestore {
 }
 ```
 
-### Firebase Storage
-
-- If enabling the ability for users to upload a profile picture (gallery or camera in the moment) the Storage feature would need to be used which by default doesnt come with the Spark (no-cost) plan.
-- Would need the Pay as you go plan with the following details:
-    - No-cost up to 5 GB
-    - Then $0.10/GB
-- For now will use a set of predefined default images whcih can be stored in `assests`
-
-
-
-
-
-Before Friends:
-```
-rules_version = '2';
-service cloud.firestore {
-  function isValidUsername(username) {
-    return username.size() > 0 && username.size() <= 30 && !username.matches("[/]");
-  }
-  match /databases/{database}/documents {
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    match /usernames/{username} {
-      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid && isValidUsername(username);
-      allow read: if request.auth != null;
-      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
-      allow update: if false;
-    }
-  }
-}
-```
-
-After
-```
-rules_version = '2';
-service cloud.firestore {
-  function isValidUsername(username) {
-    return username.size() > 0 && username.size() <= 30 && !username.matches("[/]");
-  }
-  match /databases/{database}/documents {
-
-    // ── User data ──────────────────────────────────────────────────────────────
-    // Full read/write access to own profile doc and all subcollections (reviews, wishlist, etc.)
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Any signed-in user can read another user's profile document
-    // (avatar, username, privacyLevel, createdAt — does not grant subcollection access)
-    match /users/{userId} {
-      allow read: if request.auth != null;
-    }
-
-    // Any signed-in user can read another user's reviews
-    // Privacy level (public / friends only / private) is enforced client-side
-    match /users/{userId}/reviews/{reviewId} {
-      allow read: if request.auth != null;
-    }
-
-    // ── Usernames index ────────────────────────────────────────────────────────
-    match /usernames/{username} {
-      allow create: if request.auth != null
-                    && request.resource.data.uid == request.auth.uid
-                    && isValidUsername(username);
-      allow read:   if request.auth != null;
-      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
-      allow update: if false;
-    }
-
-    // ── Friend requests ────────────────────────────────────────────────────────
-    match /friendRequests/{docId} {
-      // Only the two parties involved can read a request
-      allow read: if request.auth != null
-                  && (resource.data.fromUid == request.auth.uid
-                      || resource.data.toUid == request.auth.uid);
-      // Only the sender can create a request
-      allow create: if request.auth != null
-                    && request.resource.data.fromUid == request.auth.uid;
-      // Only the recipient can accept (update status to 'accepted')
-      allow update: if request.auth != null
-                    && resource.data.toUid == request.auth.uid;
-      // Either party can cancel / decline / unfriend
-      allow delete: if request.auth != null
-                    && (resource.data.fromUid == request.auth.uid
-                        || resource.data.toUid == request.auth.uid);
-    }
-  }
-}
-```
-
 ##### Breakdown of rule conditions:
 - `/users/{userId}/...` (profiles, reviews, wishlist)
     - A user can only write their own data — request.auth.uid == userId blocks any attempt to edit another user's profile, reviews, or wishlist.
@@ -193,3 +102,11 @@ service cloud.firestore {
     - Only the recipient (toUid) can accept it (update).
     - Only the two parties involved can read a request — no third party can see your requests.
     - Either party can delete (cancel/decline/unfriend)
+
+### Firebase Storage
+
+- If enabling the ability for users to upload a profile picture (gallery or camera in the moment) the Storage feature would need to be used which by default doesnt come with the Spark (no-cost) plan.
+- Would need the Pay as you go plan with the following details:
+    - No-cost up to 5 GB
+    - Then $0.10/GB
+- For now will use a set of predefined default images whcih can be stored in `assests`
