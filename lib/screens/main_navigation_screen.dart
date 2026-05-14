@@ -1,11 +1,16 @@
 import 'dart:async';
 
+import 'package:app_links/app_links.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
 import '../services/badge_refresh_notifier.dart';
+import '../services/friend_code_service.dart';
 import '../services/friend_service.dart';
+import '../models/user_profile.dart';
+import 'friends_screen.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'log_screen.dart';
@@ -26,28 +31,41 @@ class _MainNavigationScreenState
   bool _searchAutoFocus = false;
   int _pendingRequestCount = 0;
   int _newlyAcceptedCount = 0;
+  int _newlyReceivedAcceptedCount = 0;
   StreamSubscription? _requestSub;
   StreamSubscription? _sentSub;
+  StreamSubscription? _linkSub;
   Set<String> _seenAcceptedIds = {};
+  Set<String> _seenReceivedAcceptedIds = {};
   List<Map<String, dynamic>> _lastSentDocs = [];
+  List<Map<String, dynamic>> _lastReceivedDocs = [];
+  // Used to deduplicate the initial deep link vs the stream re-emitting it.
+  Uri? _initialDeepLink;
 
   @override
   void initState() {
     super.initState();
     AuthService().ensureUserProfile();
     _initStreams();
+    _setupDeepLinks();
   }
 
   Future<void> _initStreams() async {
     final prefs = await SharedPreferences.getInstance();
     _seenAcceptedIds =
         Set<String>.from(prefs.getStringList('seen_accepted_ids') ?? []);
+    _seenReceivedAcceptedIds =
+        Set<String>.from(prefs.getStringList('seen_received_accepted_ids') ?? []);
 
     _requestSub = FriendService.receivedRequestsStream().listen((snap) {
       if (!mounted) return;
       final pending =
           snap.docs.where((d) => d.data()['status'] != 'accepted').length;
+      _lastReceivedDocs = snap.docs
+          .map((d) => {'id': d.id, 'status': d.data()['status'] as String?})
+          .toList();
       setState(() => _pendingRequestCount = pending);
+      _recalcNewlyReceivedAccepted();
     });
 
     _sentSub = FriendService.sentRequestsStream().listen((snap) {
@@ -70,11 +88,83 @@ class _MainNavigationScreenState
     if (mounted) setState(() => _newlyAcceptedCount = count);
   }
 
+  void _recalcNewlyReceivedAccepted() {
+    final count = _lastReceivedDocs
+        .where((d) =>
+            d['status'] == 'accepted' &&
+            !_seenReceivedAcceptedIds.contains(d['id'] as String))
+        .length;
+    if (mounted) setState(() => _newlyReceivedAcceptedCount = count);
+  }
+
   Future<void> _refreshSeenIds() async {
     final prefs = await SharedPreferences.getInstance();
     _seenAcceptedIds =
         Set<String>.from(prefs.getStringList('seen_accepted_ids') ?? []);
+    _seenReceivedAcceptedIds =
+        Set<String>.from(prefs.getStringList('seen_received_accepted_ids') ?? []);
     _recalcNewlyAccepted();
+    _recalcNewlyReceivedAccepted();
+  }
+
+  // ─── Deep link handling ──────────────────────────────────────────────────
+
+  Future<void> _setupDeepLinks() async {
+    final appLinks = AppLinks();
+    // Handle the link that cold-started the app.
+    try {
+      final initial = await appLinks.getInitialLink();
+      if (initial != null) {
+        _initialDeepLink = initial;
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => _handleDeepLink(initial));
+      }
+    } catch (_) {}
+    // Handle links while the app is already running.
+    // On some platforms/versions app_links re-emits the initial link through
+    // the stream — skip it once if it matches what we already handled.
+    _linkSub = appLinks.uriLinkStream.listen((uri) {
+      if (_initialDeepLink != null && uri == _initialDeepLink) {
+        _initialDeepLink = null; // only suppress the first duplicate
+        return;
+      }
+      _handleDeepLink(uri);
+    }, onError: (_) {});
+  }
+
+  Future<void> _handleDeepLink(Uri uri) async {
+    if (uri.scheme != 'shelfd' || uri.host != 'friend') return;
+    final code = uri.pathSegments.firstOrNull;
+    if (code == null || code.isEmpty) return;
+
+    // Ignore if not logged in.
+    final me = FirebaseAuth.instance.currentUser;
+    if (me == null) return;
+
+    final uid = await FriendCodeService.uidFromCode(code);
+    if (uid == null) return;
+    // Can't add yourself.
+    if (uid == me.uid) return;
+
+    final profile = await FriendService.getUserProfile(uid);
+    if (profile == null || !mounted) return;
+
+    _showQrAddDialog(profile);
+  }
+
+  void _showQrAddDialog(UserProfile profile) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _QrAddSheet(
+        profile: profile,
+        onAccepted: () {
+          // Navigate to Profile tab so user sees Friends screen easily.
+          setState(() => selectedIndex = 3);
+        },
+      ),
+    );
   }
 
   @override
@@ -82,6 +172,7 @@ class _MainNavigationScreenState
     BadgeRefreshNotifier.removeListener(_refreshSeenIds);
     _requestSub?.cancel();
     _sentSub?.cancel();
+    _linkSub?.cancel();
     super.dispose();
   }
 
@@ -146,7 +237,7 @@ class _MainNavigationScreenState
               clipBehavior: Clip.none,
               children: [
                 const Icon(Icons.person_outline),
-                if (_pendingRequestCount + _newlyAcceptedCount > 0)
+                if (_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount > 0)
                   Positioned(
                     top: -4,
                     right: -6,
@@ -159,7 +250,7 @@ class _MainNavigationScreenState
                       ),
                       child: Center(
                         child: Text(
-                          '${_pendingRequestCount + _newlyAcceptedCount}',
+                          '${_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 9,
@@ -176,6 +267,171 @@ class _MainNavigationScreenState
           const BottomNavigationBarItem(
             icon: Icon(Icons.travel_explore),
             label: "Future Reads",
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── QR Add Friend Sheet ──────────────────────────────────────────────────────
+
+/// Bottom sheet shown when User A scans User B's QR code.
+/// Presents a simple Accept / Not Now choice and creates an instant friendship.
+class _QrAddSheet extends StatefulWidget {
+  final UserProfile profile;
+  final VoidCallback onAccepted;
+
+  const _QrAddSheet({required this.profile, required this.onAccepted});
+
+  @override
+  State<_QrAddSheet> createState() => _QrAddSheetState();
+}
+
+class _QrAddSheetState extends State<_QrAddSheet> {
+  bool _loading = false;
+
+  Future<void> _accept() async {
+    setState(() => _loading = true);
+    try {
+      await FriendService.acceptViaQr(widget.profile);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Something went wrong. Please try again.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    widget.onAccepted();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${widget.profile.displayName} added as a friend!'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = widget.profile;
+    final ImageProvider? avatar = profile.avatarAsset != null
+        ? AssetImage(profile.avatarAsset!) as ImageProvider
+        : profile.photoUrl != null
+            ? NetworkImage(profile.photoUrl!)
+            : null;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xffF5F2ED),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade400,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // Avatar
+          CircleAvatar(
+            radius: 44,
+            backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
+            backgroundImage: avatar,
+            child: avatar == null
+                ? const Icon(Icons.person, size: 44, color: Color(0xff5C3A1E))
+                : null,
+          ),
+          const SizedBox(height: 16),
+
+          // Name
+          Text(
+            profile.displayName,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          if (profile.username?.isNotEmpty == true) ...[
+            const SizedBox(height: 4),
+            Text(
+              '@${profile.username}',
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            ),
+          ],
+          const SizedBox(height: 6),
+
+          // QR context label
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.deepOrange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.qr_code_2, size: 14, color: Colors.deepOrange),
+                SizedBox(width: 4),
+                Text(
+                  'Scanned via QR code',
+                  style: TextStyle(fontSize: 12, color: Colors.deepOrange),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // Action buttons
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _loading ? null : () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Not Now'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _accept,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _loading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Text('Add Friend',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
           ),
         ],
       ),

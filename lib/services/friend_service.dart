@@ -68,6 +68,50 @@ class FriendService {
         .update({'status': 'accepted'});
   }
 
+  /// Create an instant, already-accepted friendship via QR code scan.
+  ///
+  /// Any existing request between the two users (in either direction, any
+  /// status) is deleted first so there are no duplicate docs.  A fresh doc
+  /// with status `accepted` is then created atomically in the same batch.
+  static Future<void> acceptViaQr(UserProfile target) async {
+    final myUid = _myUid;
+
+    final batch = _firestore.batch();
+
+    // Delete any existing request in EITHER direction.
+    for (final query in [
+      _firestore
+          .collection('friendRequests')
+          .where('fromUid', isEqualTo: myUid)
+          .where('toUid', isEqualTo: target.uid),
+      _firestore
+          .collection('friendRequests')
+          .where('fromUid', isEqualTo: target.uid)
+          .where('toUid', isEqualTo: myUid),
+    ]) {
+      final snap = await query.get();
+      for (final doc in snap.docs) {
+        batch.delete(doc.reference);
+      }
+    }
+
+    final myDoc = await _firestore.collection('users').doc(myUid).get();
+    final myUsername = myDoc.data()?['username'] as String?;
+
+    // Create a single accepted friendship doc.
+    final newRef = _firestore.collection('friendRequests').doc();
+    batch.set(newRef, {
+      'fromUid': myUid,
+      'toUid': target.uid,
+      'fromUsername': myUsername,
+      'toUsername': target.username,
+      'status': 'accepted',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+  }
+
   /// Cancel, decline, or remove a friendship.
   static Future<void> deleteRequest(String requestId) async {
     await _firestore.collection('friendRequests').doc(requestId).delete();

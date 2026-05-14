@@ -29,6 +29,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   StreamSubscription? _receivedSub;
 
   Set<String> _seenAcceptedIds = {};
+  Set<String> _seenReceivedAcceptedIds = {};
 
   UserProfile? _searchResult;
   bool _searching = false;
@@ -49,6 +50,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
       setState(() {
         _seenAcceptedIds =
             Set<String>.from(prefs.getStringList('seen_accepted_ids') ?? []);
+        _seenReceivedAcceptedIds =
+            Set<String>.from(prefs.getStringList('seen_received_accepted_ids') ?? []);
       });
     }
   }
@@ -86,14 +89,24 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   Future<void> _markAcceptedAsSeen() async {
     final prefs = await SharedPreferences.getInstance();
+    // Sent requests that were accepted (someone accepted MY request).
     final allAcceptedIds = _sentRequests
         .where((r) => r.status == FriendshipStatus.accepted)
         .map((r) => r.id)
         .toSet();
-    final existing =
+    final existingSent =
         Set<String>.from(prefs.getStringList('seen_accepted_ids') ?? []);
     await prefs.setStringList(
-        'seen_accepted_ids', [...existing, ...allAcceptedIds].toList());
+        'seen_accepted_ids', [...existingSent, ...allAcceptedIds].toList());
+    // Received requests that are accepted (QR-added by others scanning MY code).
+    final allReceivedAcceptedIds = _receivedRequests
+        .where((r) => r.status == FriendshipStatus.accepted)
+        .map((r) => r.id)
+        .toSet();
+    final existingReceived =
+        Set<String>.from(prefs.getStringList('seen_received_accepted_ids') ?? []);
+    await prefs.setStringList('seen_received_accepted_ids',
+        [...existingReceived, ...allReceivedAcceptedIds].toList());
     // Notify nav bar and profile card to refresh their badge counts.
     BadgeRefreshNotifier.notifyAll();
   }
@@ -120,6 +133,14 @@ class _FriendsScreenState extends State<FriendsScreen> {
       .where((r) =>
           r.status == FriendshipStatus.accepted &&
           !_seenAcceptedIds.contains(r.id))
+      .toList();
+
+  // Received requests that arrived already-accepted (QR-added by someone
+  // scanning this user's code) and haven't been seen yet.
+  List<FriendRequest> get _newlyReceivedAccepted => _receivedRequests
+      .where((r) =>
+          r.status == FriendshipStatus.accepted &&
+          !_seenReceivedAcceptedIds.contains(r.id))
       .toList();
 
   List<FriendRequest> get _pendingReceived => _receivedRequests
@@ -180,6 +201,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   Future<void> _acceptRequest(FriendRequest req) async {
+    // Pre-emptively mark as seen so User B doesn't get a badge for a request
+    // they accepted themselves.
+    _seenReceivedAcceptedIds.add(req.id);
+    final prefs = await SharedPreferences.getInstance();
+    final existing =
+        Set<String>.from(prefs.getStringList('seen_received_accepted_ids') ?? []);
+    existing.add(req.id);
+    await prefs.setStringList('seen_received_accepted_ids', existing.toList());
+
     await FriendService.acceptRequest(req.id);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -571,7 +601,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     color: Colors.grey.shade600,
                     fontWeight: FontWeight.w500),
               ),
-              if (_newlyAcceptedSent.isNotEmpty) ...
+              if (_newlyAcceptedSent.isNotEmpty || _newlyReceivedAccepted.isNotEmpty) ...
                 [
                   const SizedBox(width: 8),
                   Container(
@@ -582,7 +612,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      '${_newlyAcceptedSent.length} new',
+                      '${_newlyAcceptedSent.length + _newlyReceivedAccepted.length} new',
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,

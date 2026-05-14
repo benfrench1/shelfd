@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../services/auth_service.dart';
 import '../models/achievement.dart';
 import '../models/book_review.dart';
 import '../services/badge_refresh_notifier.dart';
+import '../services/friend_code_service.dart';
 import '../services/storage_service.dart';
 import '../services/friend_service.dart';
 import 'account_settings_screen.dart';
@@ -115,10 +117,14 @@ class _UserProfileTabState extends State<_UserProfileTab> {
   int _bookCount = 0;
   int _pendingRequestCount = 0;
   int _newlyAcceptedCount = 0;
+  int _newlyReceivedAcceptedCount = 0;
+  String? _friendCode;
   StreamSubscription? _requestSub;
   StreamSubscription? _sentSub;
   Set<String> _seenAcceptedIds = {};
+  Set<String> _seenReceivedAcceptedIds = {};
   List<Map<String, dynamic>> _lastSentDocs = [];
+  List<Map<String, dynamic>> _lastReceivedDocs = [];
 
   @override
   void initState() {
@@ -127,6 +133,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
     _loadAvatarAssets();
     _loadBookCount();
     _loadSeenIds();
+    _loadFriendCode();
     _usernameSub = _authService.usernameStream.listen((u) {
       if (mounted) setState(() => _username = u);
     });
@@ -134,7 +141,11 @@ class _UserProfileTabState extends State<_UserProfileTab> {
       if (!mounted) return;
       final pending =
           snap.docs.where((d) => d.data()['status'] != 'accepted').length;
+      _lastReceivedDocs = snap.docs
+          .map((d) => {'id': d.id, 'status': d.data()['status'] as String?})
+          .toList();
       setState(() => _pendingRequestCount = pending);
+      _recalcNewlyReceivedAccepted();
     });
     _sentSub = FriendService.sentRequestsStream().listen((snap) {
       if (!mounted) return;
@@ -161,8 +172,11 @@ class _UserProfileTabState extends State<_UserProfileTab> {
     setState(() {
       _seenAcceptedIds =
           Set<String>.from(prefs.getStringList('seen_accepted_ids') ?? []);
+      _seenReceivedAcceptedIds =
+          Set<String>.from(prefs.getStringList('seen_received_accepted_ids') ?? []);
     });
     _recalcNewlyAccepted();
+    _recalcNewlyReceivedAccepted();
   }
 
   Future<void> _refreshSeenIds() async {
@@ -171,8 +185,11 @@ class _UserProfileTabState extends State<_UserProfileTab> {
     setState(() {
       _seenAcceptedIds =
           Set<String>.from(prefs.getStringList('seen_accepted_ids') ?? []);
+      _seenReceivedAcceptedIds =
+          Set<String>.from(prefs.getStringList('seen_received_accepted_ids') ?? []);
     });
     _recalcNewlyAccepted();
+    _recalcNewlyReceivedAccepted();
   }
 
   void _recalcNewlyAccepted() {
@@ -182,6 +199,20 @@ class _UserProfileTabState extends State<_UserProfileTab> {
             !_seenAcceptedIds.contains(d['id'] as String))
         .length;
     if (mounted) setState(() => _newlyAcceptedCount = count);
+  }
+
+  void _recalcNewlyReceivedAccepted() {
+    final count = _lastReceivedDocs
+        .where((d) =>
+            d['status'] == 'accepted' &&
+            !_seenReceivedAcceptedIds.contains(d['id'] as String))
+        .length;
+    if (mounted) setState(() => _newlyReceivedAcceptedCount = count);
+  }
+
+  Future<void> _loadFriendCode() async {
+    final code = await FriendCodeService.getOrCreateCode();
+    if (mounted) setState(() => _friendCode = code);
   }
 
   Future<void> _loadAvatar() async {
@@ -201,6 +232,62 @@ class _UserProfileTabState extends State<_UserProfileTab> {
         .where((key) => key.startsWith('assets/avatars/'))
         .toList()..sort();
     if (mounted) setState(() => _avatarAssets = assets);
+  }
+
+  void _showQrDialog() {
+    final code = _friendCode;
+    if (code == null) return;
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      barrierDismissible: true,
+      builder: (_) => GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: GestureDetector(
+            onTap: () {}, // prevent closing when tapping the card itself
+            child: Container(
+              margin: const EdgeInsets.all(32),
+              padding: const EdgeInsets.fromLTRB(28, 24, 28, 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Scan to add me on Shelfd',
+                    style: TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  QrImageView(
+                    data: FriendCodeService.deepLinkForCode(code),
+                    version: QrVersions.auto,
+                    size: 240,
+                    backgroundColor: Colors.white,
+                  ),
+                  const SizedBox(height: 8),
+                  if (_username?.isNotEmpty == true)
+                    Text(
+                      '@$_username',
+                      style: TextStyle(
+                          fontSize: 14, color: Colors.grey.shade600),
+                    ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Tap anywhere outside to dismiss',
+                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _showEnlargedAvatar() {
@@ -405,6 +492,15 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.w500),
                 ),
+                trailing: GestureDetector(
+                  onTap: _friendCode != null ? _showQrDialog : null,
+                  child: Icon(
+                    Icons.qr_code_2,
+                    color: _friendCode != null
+                        ? const Color(0xff5C3A1E)
+                        : Colors.grey.shade300,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -487,7 +583,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                             fontWeight: FontWeight.w500),
                       ),
                     ),
-                    if (_pendingRequestCount + _newlyAcceptedCount > 0) ...
+                    if (_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount > 0) ...
                       [
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -497,7 +593,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            '${_pendingRequestCount + _newlyAcceptedCount}',
+                            '${_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount}',
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
