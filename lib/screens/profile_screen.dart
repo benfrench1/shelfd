@@ -4,9 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../models/achievement.dart';
 import '../models/book_review.dart';
+import '../services/badge_refresh_notifier.dart';
 import '../services/storage_service.dart';
 import '../services/friend_service.dart';
 import 'account_settings_screen.dart';
@@ -112,7 +114,11 @@ class _UserProfileTabState extends State<_UserProfileTab> {
   List<String> _avatarAssets = [];
   int _bookCount = 0;
   int _pendingRequestCount = 0;
+  int _newlyAcceptedCount = 0;
   StreamSubscription? _requestSub;
+  StreamSubscription? _sentSub;
+  Set<String> _seenAcceptedIds = {};
+  List<Map<String, dynamic>> _lastSentDocs = [];
 
   @override
   void initState() {
@@ -120,6 +126,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
     _loadAvatar();
     _loadAvatarAssets();
     _loadBookCount();
+    _loadSeenIds();
     _usernameSub = _authService.usernameStream.listen((u) {
       if (mounted) setState(() => _username = u);
     });
@@ -129,13 +136,52 @@ class _UserProfileTabState extends State<_UserProfileTab> {
           snap.docs.where((d) => d.data()['status'] != 'accepted').length;
       setState(() => _pendingRequestCount = pending);
     });
+    _sentSub = FriendService.sentRequestsStream().listen((snap) {
+      if (!mounted) return;
+      _lastSentDocs = snap.docs
+          .map((d) => {'id': d.id, 'status': d.data()['status'] as String?})
+          .toList();
+      _recalcNewlyAccepted();
+    });
+    BadgeRefreshNotifier.addListener(_refreshSeenIds);
   }
 
   @override
   void dispose() {
+    BadgeRefreshNotifier.removeListener(_refreshSeenIds);
     _usernameSub?.cancel();
     _requestSub?.cancel();
+    _sentSub?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadSeenIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _seenAcceptedIds =
+          Set<String>.from(prefs.getStringList('seen_accepted_ids') ?? []);
+    });
+    _recalcNewlyAccepted();
+  }
+
+  Future<void> _refreshSeenIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _seenAcceptedIds =
+          Set<String>.from(prefs.getStringList('seen_accepted_ids') ?? []);
+    });
+    _recalcNewlyAccepted();
+  }
+
+  void _recalcNewlyAccepted() {
+    final count = _lastSentDocs
+        .where((d) =>
+            d['status'] == 'accepted' &&
+            !_seenAcceptedIds.contains(d['id'] as String))
+        .length;
+    if (mounted) setState(() => _newlyAcceptedCount = count);
   }
 
   Future<void> _loadAvatar() async {
@@ -441,7 +487,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                             fontWeight: FontWeight.w500),
                       ),
                     ),
-                    if (_pendingRequestCount > 0) ...
+                    if (_pendingRequestCount + _newlyAcceptedCount > 0) ...
                       [
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -451,7 +497,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            '$_pendingRequestCount',
+                            '${_pendingRequestCount + _newlyAcceptedCount}',
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,

@@ -790,12 +790,13 @@ class _ReactionRow extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: isMine
-                      ? Colors.deepOrange.withOpacity(0.12)
+                      ? Colors.orange.shade50
                       : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color:
                         isMine ? Colors.deepOrange : Colors.grey.shade300,
+                    width: isMine ? 2 : 1,
                   ),
                 ),
                 child: Text('$emoji ${counts[emoji]}',
@@ -810,26 +811,32 @@ class _ReactionRow extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: Colors.grey.shade500),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ColorFiltered(
-                    colorFilter: const ColorFilter.matrix([
-                      0.2126, 0.7152, 0.0722, 0, 0,
-                      0.2126, 0.7152, 0.0722, 0, 0,
-                      0.2126, 0.7152, 0.0722, 0, 0,
-                      0,      0,      0,      0.5, 0,
-                    ]),
-                    child: const Text('🙂',
-                        style: TextStyle(fontSize: 14)),
-                  ),
-                  const SizedBox(width: 2),
-                  Icon(Icons.add, size: 13, color: Colors.grey.shade600),
-                ],
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(Icons.sentiment_satisfied_outlined,
+                        size: 18, color: Colors.grey.shade700),
+                    Positioned(
+                      right: -2,
+                      top: -2,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.add,
+                            size: 11, color: Colors.grey.shade700),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

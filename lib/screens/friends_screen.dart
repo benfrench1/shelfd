@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user_profile.dart';
+import '../services/badge_refresh_notifier.dart';
 import '../services/friend_service.dart';
 import 'friend_profile_screen.dart';
 
@@ -26,6 +28,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
   StreamSubscription? _sentSub;
   StreamSubscription? _receivedSub;
 
+  Set<String> _seenAcceptedIds = {};
+
   UserProfile? _searchResult;
   bool _searching = false;
   String? _searchError;
@@ -35,7 +39,18 @@ class _FriendsScreenState extends State<FriendsScreen> {
   @override
   void initState() {
     super.initState();
+    _loadSeenIds();
     _setupStreams();
+  }
+
+  Future<void> _loadSeenIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _seenAcceptedIds =
+            Set<String>.from(prefs.getStringList('seen_accepted_ids') ?? []);
+      });
+    }
   }
 
   void _setupStreams() {
@@ -65,7 +80,22 @@ class _FriendsScreenState extends State<FriendsScreen> {
     _searchController.dispose();
     _sentSub?.cancel();
     _receivedSub?.cancel();
+    _markAcceptedAsSeen();
     super.dispose();
+  }
+
+  Future<void> _markAcceptedAsSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    final allAcceptedIds = _sentRequests
+        .where((r) => r.status == FriendshipStatus.accepted)
+        .map((r) => r.id)
+        .toSet();
+    final existing =
+        Set<String>.from(prefs.getStringList('seen_accepted_ids') ?? []);
+    await prefs.setStringList(
+        'seen_accepted_ids', [...existing, ...allAcceptedIds].toList());
+    // Notify nav bar and profile card to refresh their badge counts.
+    BadgeRefreshNotifier.notifyAll();
   }
 
   // Derived lists
@@ -85,6 +115,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
         ..._receivedRequests
             .where((r) => r.status == FriendshipStatus.accepted),
       ];
+
+  List<FriendRequest> get _newlyAcceptedSent => _sentRequests
+      .where((r) =>
+          r.status == FriendshipStatus.accepted &&
+          !_seenAcceptedIds.contains(r.id))
+      .toList();
 
   List<FriendRequest> get _pendingReceived => _receivedRequests
       .where((r) => r.status == FriendshipStatus.pendingReceived)
@@ -198,9 +234,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) {
+        // Local copy so Accept / Decline remove the row immediately without
+        // waiting for the Firestore stream to propagate back.
+        final localPending = List<FriendRequest>.of(_pendingReceived);
+
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
-            final pending = _pendingReceived;
             return DraggableScrollableSheet(
               initialChildSize: 0.5,
               minChildSize: 0.5,
@@ -210,6 +249,17 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 12, bottom: 4),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade400,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
                       child: Row(
@@ -220,7 +270,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                 fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 8),
-                          if (pending.isNotEmpty)
+                          if (localPending.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 2),
@@ -229,7 +279,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
-                                '${pending.length}',
+                                '${localPending.length}',
                                 style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 12,
@@ -240,7 +290,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       ),
                     ),
                     Expanded(
-                      child: pending.isEmpty
+                      child: localPending.isEmpty
                           ? const Padding(
                               padding: EdgeInsets.fromLTRB(24, 8, 24, 24),
                               child: Text(
@@ -252,9 +302,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               controller: scrollController,
                               padding: const EdgeInsets.fromLTRB(
                                   24, 0, 24, 24),
-                              itemCount: pending.length,
+                              itemCount: localPending.length,
                               itemBuilder: (_, i) {
-                                final req = pending[i];
+                                final req = localPending[i];
                                 return ListTile(
                                   contentPadding: EdgeInsets.zero,
                                   leading: _buildAvatarCircle(
@@ -268,11 +318,16 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                     children: [
                                       ElevatedButton(
                                         onPressed: () async {
-                                          await _acceptRequest(req);
+                                          // Remove immediately from the local
+                                          // list so the row disappears at once.
+                                          setSheetState(() => localPending
+                                              .removeWhere(
+                                                  (r) => r.id == req.id));
                                           if (mounted &&
-                                              _pendingReceived.isEmpty) {
+                                              localPending.isEmpty) {
                                             Navigator.of(context).pop();
                                           }
+                                          await _acceptRequest(req);
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.green,
@@ -289,11 +344,43 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                       const SizedBox(width: 8),
                                       OutlinedButton(
                                         onPressed: () async {
-                                          await _confirmDelete(
-                                              req, 'Decline Request');
-                                          if (mounted &&
-                                              _pendingReceived.isEmpty) {
-                                            Navigator.of(context).pop();
+                                          final confirmed =
+                                              await showDialog<bool>(
+                                            context: context,
+                                            builder: (ctx) => AlertDialog(
+                                              title: const Text(
+                                                  'Decline Request'),
+                                              content:
+                                                  const Text('Are you sure?'),
+                                              actions: [
+                                                TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                            ctx, false),
+                                                    child: const Text(
+                                                        'Cancel')),
+                                                TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                            ctx, true),
+                                                    style: TextButton.styleFrom(
+                                                        foregroundColor:
+                                                            Colors.red),
+                                                    child: const Text(
+                                                        'Confirm')),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirmed == true) {
+                                            setSheetState(() => localPending
+                                                .removeWhere(
+                                                    (r) => r.id == req.id));
+                                            if (mounted &&
+                                                localPending.isEmpty) {
+                                              Navigator.of(context).pop();
+                                            }
+                                            await FriendService
+                                                .deleteRequest(req.id);
                                           }
                                         },
                                         style: OutlinedButton.styleFrom(
@@ -484,6 +571,25 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     color: Colors.grey.shade600,
                     fontWeight: FontWeight.w500),
               ),
+              if (_newlyAcceptedSent.isNotEmpty) ...
+                [
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.deepOrange,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${_newlyAcceptedSent.length} new',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
             ],
           ),
           const SizedBox(height: 8),

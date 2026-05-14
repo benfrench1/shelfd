@@ -199,9 +199,9 @@ class _LogScreenState extends State<LogScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.deepOrange.withOpacity(0.08),
+                color: Colors.orange.shade50,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.deepOrange.withOpacity(0.4)),
+                border: Border.all(color: Colors.deepOrange, width: 2),
               ),
               child: Text('$emoji ${counts[emoji]}',
                   style: const TextStyle(fontSize: 14)),
@@ -459,45 +459,34 @@ class _ReactorSheetState extends State<_ReactorSheet> {
         .map((e) => e.key)
         .toList();
 
-    final entries = <({String display, bool isPrivate, bool isFriend})>[];
-
-    for (final uid in reactorUids) {
+    // Fetch all profiles and friendship statuses in parallel
+    final results = await Future.wait(reactorUids.map((uid) async {
       if (uid == myUid) {
-        entries.add((display: 'You', isPrivate: false, isFriend: false));
-        continue;
+        return (display: 'You', isPrivate: false, isFriend: false);
       }
 
       final profile = await FriendService.getUserProfile(uid);
       if (profile == null) {
-        entries.add((display: 'Unknown user', isPrivate: true, isFriend: false));
-        continue;
+        return (display: 'Unknown user', isPrivate: true, isFriend: false);
       }
 
-      if (profile.privacyLevel == PrivacyLevel.public) {
-        final result = await FriendService.getFriendshipStatus(uid);
-        final isFriend = result.status == FriendshipStatus.accepted;
-        entries.add((
+      final friendResult = await FriendService.getFriendshipStatus(uid);
+      final isFriend = friendResult.status == FriendshipStatus.accepted;
+
+      if (profile.privacyLevel == PrivacyLevel.public || isFriend) {
+        return (
           display: profile.username?.isNotEmpty == true
               ? profile.username!
               : profile.displayName,
           isPrivate: false,
           isFriend: isFriend,
-        ));
+        );
       } else {
-        final result = await FriendService.getFriendshipStatus(uid);
-        if (result.status == FriendshipStatus.accepted) {
-          entries.add((
-            display: profile.username?.isNotEmpty == true
-                ? profile.username!
-                : profile.displayName,
-            isPrivate: false,
-            isFriend: true,
-          ));
-        } else {
-          entries.add((display: 'Private user · Not a friend', isPrivate: true, isFriend: false));
-        }
+        return (display: 'Private user · Not a friend', isPrivate: true, isFriend: false);
       }
-    }
+    }));
+
+    final entries = results.toList();
 
     if (mounted) setState(() => _entries = entries);
   }
@@ -512,6 +501,17 @@ class _ReactorSheetState extends State<_ReactorSheet> {
       builder: (_, scrollController) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 4),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
             child: Text(
