@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
+import '../services/activity_stream_service.dart';
 import '../services/badge_refresh_notifier.dart';
 import '../services/friend_code_service.dart';
 import '../services/friend_service.dart';
@@ -32,9 +33,11 @@ class _MainNavigationScreenState
   int _pendingRequestCount = 0;
   int _newlyAcceptedCount = 0;
   int _newlyReceivedAcceptedCount = 0;
+  int _activityCount = 0;
   StreamSubscription? _requestSub;
   StreamSubscription? _sentSub;
   StreamSubscription? _linkSub;
+  StreamSubscription? _activitySub;
   Set<String> _seenAcceptedIds = {};
   Set<String> _seenReceivedAcceptedIds = {};
   List<Map<String, dynamic>> _lastSentDocs = [];
@@ -77,6 +80,14 @@ class _MainNavigationScreenState
     });
 
     BadgeRefreshNotifier.addListener(_refreshSeenIds);
+
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    if (myUid != null) {
+      _activitySub = ActivityStreamService.unseenCountStream(myUid)
+          .listen((count) {
+        if (mounted) setState(() => _activityCount = count);
+      });
+    }
   }
 
   void _recalcNewlyAccepted() {
@@ -173,6 +184,7 @@ class _MainNavigationScreenState
     _requestSub?.cancel();
     _sentSub?.cancel();
     _linkSub?.cancel();
+    _activitySub?.cancel();
     super.dispose();
   }
 
@@ -237,7 +249,7 @@ class _MainNavigationScreenState
               clipBehavior: Clip.none,
               children: [
                 const Icon(Icons.person_outline),
-                if (_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount > 0)
+                if (_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount + _activityCount > 0)
                   Positioned(
                     top: -4,
                     right: -6,
@@ -250,7 +262,7 @@ class _MainNavigationScreenState
                       ),
                       child: Center(
                         child: Text(
-                          '${_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount}',
+                          '${_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount + _activityCount}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 9,
