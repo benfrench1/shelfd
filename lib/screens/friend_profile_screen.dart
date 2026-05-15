@@ -483,40 +483,43 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
                         fontSize: 12, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
+                  Row(
                     children: _kReactionEmojis.map((emoji) {
                       final selected = mine.contains(emoji);
                       final disabled = atMax && !selected;
-                      return GestureDetector(
-                        onTap: disabled
-                            ? null
-                            : () async {
-                                await _toggleReaction(reviewId, emoji);
-                                if (ctx.mounted) setSheet(() {});
-                              },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          width: 58,
-                          height: 58,
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? Colors.deepOrange.withOpacity(0.12)
-                                : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: selected
-                                  ? Colors.deepOrange
-                                  : Colors.grey.shade300,
-                              width: selected ? 2 : 1,
-                            ),
-                          ),
-                          child: Center(
-                            child: Opacity(
-                              opacity: disabled ? 0.35 : 1.0,
-                              child: Text(emoji,
-                                  style: const TextStyle(fontSize: 28)),
+                      final isLast = emoji == _kReactionEmojis.last;
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(right: isLast ? 0 : 6),
+                          child: GestureDetector(
+                            onTap: disabled
+                                ? null
+                                : () async {
+                                    await _toggleReaction(reviewId, emoji);
+                                    if (ctx.mounted) setSheet(() {});
+                                  },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? Colors.deepOrange.withOpacity(0.12)
+                                    : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: selected
+                                      ? Colors.deepOrange
+                                      : Colors.grey.shade300,
+                                  width: selected ? 2 : 1,
+                                ),
+                              ),
+                              child: Center(
+                                child: Opacity(
+                                  opacity: disabled ? 0.35 : 1.0,
+                                  child: Text(emoji,
+                                      style: const TextStyle(fontSize: 26)),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -848,21 +851,28 @@ class _ReactionRow extends StatelessWidget {
 
 // ─── Stats Tab ────────────────────────────────────────────────────────────────
 
-class _StatsTab extends StatelessWidget {
+class _StatsTab extends StatefulWidget {
   final List<BookReview> reviews;
 
   const _StatsTab({required this.reviews});
 
+  @override
+  State<_StatsTab> createState() => _StatsTabState();
+}
+
+class _StatsTabState extends State<_StatsTab> {
+  bool _booksExpanded = false;
+
   int get _totalPhysical =>
-      reviews.where((r) => r.format == BookFormat.physical).length;
+      widget.reviews.where((r) => r.format == BookFormat.physical).length;
   int get _totalAudio =>
-      reviews.where((r) => r.format == BookFormat.audiobook).length;
+      widget.reviews.where((r) => r.format == BookFormat.audiobook).length;
   int get _totalBraille =>
-      reviews.where((r) => r.format == BookFormat.braille).length;
+      widget.reviews.where((r) => r.format == BookFormat.braille).length;
 
   List<MapEntry<String, int>> get _topAuthors {
     final counts = <String, int>{};
-    for (final r in reviews) {
+    for (final r in widget.reviews) {
       counts[r.author] = (counts[r.author] ?? 0) + 1;
     }
     return (counts.entries.toList()
@@ -872,7 +882,7 @@ class _StatsTab extends StatelessWidget {
   }
 
   List<BookReview> get _topRated {
-    return (List<BookReview>.from(reviews)
+    return (List<BookReview>.from(widget.reviews)
           ..sort((a, b) => b.rating.compareTo(a.rating)))
         .take(3)
         .toList();
@@ -880,7 +890,7 @@ class _StatsTab extends StatelessWidget {
 
   List<MapEntry<int, int>> get _byYear {
     final counts = <int, int>{};
-    for (final r in reviews) {
+    for (final r in widget.reviews) {
       counts[r.dateAdded.year] = (counts[r.dateAdded.year] ?? 0) + 1;
     }
     return (counts.entries.toList()
@@ -889,7 +899,7 @@ class _StatsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (reviews.isEmpty) {
+    if (widget.reviews.isEmpty) {
       return const Center(
         child: Text('No stats yet.', style: TextStyle(color: Colors.grey)),
       );
@@ -899,48 +909,77 @@ class _StatsTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         Card(
-          child: ListTile(
-            leading: const Icon(Icons.library_books),
-            title: const Text('Total Books Completed'),
-            trailing: Text(
-              '${reviews.length}',
-              style: const TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.bold),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => setState(() => _booksExpanded = !_booksExpanded),
+            child: ListTile(
+              leading: const Icon(Icons.library_books),
+              title: const Text('Total Books Completed'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${widget.reviews.length}',
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 4),
+                  AnimatedRotation(
+                    turns: _booksExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(Icons.expand_more),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        Card(
-          child: ListTile(
-            dense: true,
-            leading: const Icon(Icons.menu_book, size: 20),
-            title: const Text('Books Read',
-                style: TextStyle(fontSize: 13)),
-            trailing: Text('$_totalPhysical',
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.bold)),
-          ),
-        ),
-        Card(
-          child: ListTile(
-            dense: true,
-            leading: const Icon(Icons.headphones, size: 20),
-            title: const Text('Books Listened To',
-                style: TextStyle(fontSize: 13)),
-            trailing: Text('$_totalAudio',
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.bold)),
-          ),
-        ),
-        Card(
-          child: ListTile(
-            dense: true,
-            leading: const Icon(Icons.grain, size: 20),
-            title: const Text('Books Read Braille',
-                style: TextStyle(fontSize: 13)),
-            trailing: Text('$_totalBraille',
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.bold)),
-          ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          child: _booksExpanded
+              ? Column(
+                  children: [
+                    const SizedBox(height: 8),
+                    Card(
+                      margin: const EdgeInsets.symmetric(vertical: 3),
+                      child: ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.menu_book, size: 20),
+                        title: const Text('Books Read',
+                            style: TextStyle(fontSize: 13)),
+                        trailing: Text('$_totalPhysical',
+                            style: const TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    Card(
+                      margin: const EdgeInsets.symmetric(vertical: 3),
+                      child: ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.headphones, size: 20),
+                        title: const Text('Books Listened To',
+                            style: TextStyle(fontSize: 13)),
+                        trailing: Text('$_totalAudio',
+                            style: const TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    Card(
+                      margin: const EdgeInsets.symmetric(vertical: 3),
+                      child: ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.grain, size: 20),
+                        title: const Text('Books Read Braille',
+                            style: TextStyle(fontSize: 13)),
+                        trailing: Text('$_totalBraille',
+                            style: const TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                )
+              : const SizedBox.shrink(),
         ),
         const SizedBox(height: 20),
         const Text('Top Authors',

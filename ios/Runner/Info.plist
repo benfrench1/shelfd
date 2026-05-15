@@ -47,6 +47,8 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Shelfd needs camera access to scan QR codes and add friends.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<!-- Deep link: shelfd://friend/{code} — handles QR-code friend adds -->

@@ -15,6 +15,7 @@ import '../services/storage_service.dart';
 import '../services/friend_service.dart';
 import 'account_settings_screen.dart';
 import 'friends_screen.dart';
+import 'qr_scanner_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -276,7 +277,30 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                       style: TextStyle(
                           fontSize: 14, color: Colors.grey.shade600),
                     ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const QrScannerScreen(),
+                        ));
+                      },
+                      icon: const Icon(Icons.qr_code_scanner, size: 18),
+                      label: const Text("Scan a Friend's Code"),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xff5C3A1E),
+                        side: const BorderSide(color: Color(0xff5C3A1E)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   const Text(
                     'Tap anywhere outside to dismiss',
                     style: TextStyle(fontSize: 11, color: Colors.grey),
