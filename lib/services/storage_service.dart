@@ -32,7 +32,7 @@ class StorageService {
         .orderBy('dateAdded')
         .get();
     return snapshot.docs
-        .map((doc) => BookReview.fromJson(doc.data()))
+        .map((doc) => BookReview.fromJson(doc.data(), id: doc.id))
         .toList();
   }
 

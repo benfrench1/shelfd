@@ -55,3 +55,18 @@ macos     1:12345678987654321:ios:xyzabc123
 Learn more about using this file and next steps from the documentation:
  > https://firebase.google.com/docs/flutter/setup
 ```
+
+
+#### Firebase Costs (Spark)
+
+Firestore Spark (free) plan limits:
+
+| Resource | Free allowance | Friend request impact |
+|---|---|---|
+| Storage | 1 GiB | Negligible — thousands of users wouldn't dent this |
+| Document reads | 50,000/day | Moderate — see below |
+| Document writes | 20,000/day | Very low — only on send/accept/decline |
+| Document deletes | 10,000/day | Very low — only on cancel/unfriend |
+
+Note on _if_ limits were reached:
+"The way the Spark plan operates is that if your project exceeds the no-cost quota limit in a calendar month for any specific product (like Firestore reads), your project's usage of that particular product will be shut off for the remainder of that month."

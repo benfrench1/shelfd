@@ -86,6 +86,23 @@ service cloud.firestore {
 }
 ```
 
+##### Breakdown of rule conditions:
+- `/users/{userId}/...` (profiles, reviews, wishlist)
+    - A user can only write their own data — request.auth.uid == userId blocks any attempt to edit another user's profile, reviews, or wishlist.
+    - Any signed-in user can read another user's top-level profile doc (username, avatar, privacy level) — needed for search/friend profile display.
+    Any signed-in user can read another user's reviews — but privacy level enforcement (public/friends-only/private) is applied in the app before any data is fetched
+
+- `/usernames/{username}` (username index)
+    - A user can only create a username entry that points to their own UID.
+    - Update is blocked entirely (allow update: if false) — prevents anyone hijacking an existing username.
+    - Only the owner can delete their own username entry
+
+- `/friendRequests/{docId}`
+    - Only the sender (fromUid) can create a request.
+    - Only the recipient (toUid) can accept it (update).
+    - Only the two parties involved can read a request — no third party can see your requests.
+    - Either party can delete (cancel/decline/unfriend)
+
 ### Firebase Storage
 
 - If enabling the ability for users to upload a profile picture (gallery or camera in the moment) the Storage feature would need to be used which by default doesnt come with the Spark (no-cost) plan.

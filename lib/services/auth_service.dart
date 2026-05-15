@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../models/user_profile.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -206,6 +207,58 @@ class AuthService {
     );
 
     return await _auth.signInWithCredential(credential);
+  }
+
+  /// Ensures the user's Firestore document has a createdAt timestamp,
+  /// a default privacyLevel, and (for Google users) their photoUrl stored.
+  /// Safe to call multiple times — only writes missing fields.
+  Future<void> ensureUserProfile() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    final doc = await _firestore.collection('users').doc(uid).get();
+    final data = doc.data() ?? {};
+
+    final updates = <String, dynamic>{};
+
+    if (data['createdAt'] == null) {
+      final creationTime = _auth.currentUser?.metadata.creationTime;
+      updates['createdAt'] = creationTime != null
+          ? Timestamp.fromDate(creationTime)
+          : FieldValue.serverTimestamp();
+    }
+
+    if (data['privacyLevel'] == null) {
+      updates['privacyLevel'] = 'public';
+    }
+
+    final photoUrl = _auth.currentUser?.photoURL;
+    if (photoUrl != null && data['photoUrl'] == null) {
+      updates['photoUrl'] = photoUrl;
+    }
+
+    if (updates.isNotEmpty) {
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .set(updates, SetOptions(merge: true));
+    }
+  }
+
+  Future<PrivacyLevel> getPrivacyLevel() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return PrivacyLevel.public;
+    final doc = await _firestore.collection('users').doc(uid).get();
+    return privacyLevelFromString(doc.data()?['privacyLevel'] as String?);
+  }
+
+  Future<void> setPrivacyLevel(PrivacyLevel level) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .set({'privacyLevel': level.value}, SetOptions(merge: true));
   }
 }
 
