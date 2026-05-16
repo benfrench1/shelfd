@@ -748,7 +748,10 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
                       child: review.comment.isNotEmpty
-                          ? Text(review.comment)
+                          ? _ExpandableReviewText(
+                              text: review.comment,
+                              bookTitle: '${review.title} (${review.year})',
+                            )
                           : const Text('No review written.',
                               style: TextStyle(
                                   fontStyle: FontStyle.italic)),
@@ -771,6 +774,135 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
         ],
       ],
     );
+  }
+}
+
+// ─── Expandable review text ───────────────────────────────────────────────────
+
+class _ExpandableReviewText extends StatefulWidget {
+  final String text;
+  final String bookTitle;
+  const _ExpandableReviewText({required this.text, required this.bookTitle});
+
+  @override
+  State<_ExpandableReviewText> createState() => _ExpandableReviewTextState();
+}
+
+class _ExpandableReviewTextState extends State<_ExpandableReviewText> {
+  static const int _maxLines = 32;
+  // Fade begins at the start of the last 2 lines.
+  static const double _fadeStart = 1.0 - 2.0 / _maxLines;
+
+  void _showFullReview() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, controller) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: Text(
+                widget.bookTitle,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: controller,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                child: Text(widget.text,
+                    style: const TextStyle(fontSize: 14, height: 1.55)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final span = TextSpan(
+          text: widget.text, style: const TextStyle(fontSize: 14));
+      final tp = TextPainter(
+          text: span,
+          maxLines: _maxLines,
+          textDirection: TextDirection.ltr)
+        ..layout(maxWidth: constraints.maxWidth);
+      final overflows = tp.didExceedMaxLines;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (overflows)
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.black, Colors.black, Colors.transparent],
+                stops: [0.0, _fadeStart, 1.0],
+              ).createShader(bounds),
+              blendMode: BlendMode.dstIn,
+              child: Text(
+                widget.text,
+                maxLines: _maxLines,
+                overflow: TextOverflow.clip,
+                style: const TextStyle(fontSize: 14, height: 1.55),
+              ),
+            )
+          else
+            Text(
+              widget.text,
+              style: const TextStyle(fontSize: 14, height: 1.55),
+            ),
+          if (overflows) ...[
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: _showFullReview,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                      color: Colors.deepOrange, width: 1.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Read all',
+                  style: TextStyle(
+                    color: Colors.deepOrange,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      );
+    });
   }
 }
 
