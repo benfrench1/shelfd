@@ -6,6 +6,7 @@ import '../models/achievement.dart';
 import '../models/book.dart';
 import '../services/friend_service.dart';
 import '../services/reaction_service.dart';
+import '../services/activity_stream_service.dart';
 import '../services/wishlist_service.dart';
 
 const _kReactionEmojis = ['❤️', '🔥', '😂', '🥹', '🤙', '🫶'];
@@ -450,13 +451,28 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
       final result = await ReactionService.toggleReaction(
           widget.ownerUid, reviewId, emoji, current);
       if (mounted) setState(() => _reactions[reviewId] = result);
-    } catch (_) {
-      // Ignore — rules may not be updated yet
-    }
+    } catch (_) {}
   }
 
-  void _showEmojiPicker(BuildContext context, String reviewId) {
-    showModalBottomSheet(
+  Future<void> _saveReactionActivity(String reviewId) async {
+    try {
+      final finalEmojis = _reactions[reviewId]?.mine ?? [];
+      final bookTitle = widget.reviews
+          .firstWhere((r) => r.id == reviewId,
+              orElse: () => widget.reviews.first)
+          .title;
+      await ActivityStreamService.upsertReactionActivity(
+        ownerUid: widget.ownerUid,
+        reviewId: reviewId,
+        bookTitle: bookTitle,
+        emojis: finalEmojis,
+        isFriend: true,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _showEmojiPicker(BuildContext context, String reviewId) async {
+    await showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -533,6 +549,8 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
         },
       ),
     );
+    // Panel closed — write the final reaction state to the activity stream once.
+    await _saveReactionActivity(reviewId);
   }
 
   String? _coverUrl(int? id) {

@@ -13,9 +13,11 @@ import '../services/badge_refresh_notifier.dart';
 import '../services/friend_code_service.dart';
 import '../services/storage_service.dart';
 import '../services/friend_service.dart';
+import '../services/activity_stream_service.dart';
 import 'account_settings_screen.dart';
 import 'friends_screen.dart';
 import 'qr_scanner_screen.dart';
+import 'activity_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -119,9 +121,11 @@ class _UserProfileTabState extends State<_UserProfileTab> {
   int _pendingRequestCount = 0;
   int _newlyAcceptedCount = 0;
   int _newlyReceivedAcceptedCount = 0;
+  int _activityCount = 0;
   String? _friendCode;
   StreamSubscription? _requestSub;
   StreamSubscription? _sentSub;
+  StreamSubscription? _activitySub;
   Set<String> _seenAcceptedIds = {};
   Set<String> _seenReceivedAcceptedIds = {};
   List<Map<String, dynamic>> _lastSentDocs = [];
@@ -156,6 +160,13 @@ class _UserProfileTabState extends State<_UserProfileTab> {
       _recalcNewlyAccepted();
     });
     BadgeRefreshNotifier.addListener(_refreshSeenIds);
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    if (myUid != null) {
+      _activitySub = ActivityStreamService.unseenCountStream(myUid)
+          .listen((count) {
+        if (mounted) setState(() => _activityCount = count);
+      });
+    }
   }
 
   @override
@@ -164,6 +175,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
     _usernameSub?.cancel();
     _requestSub?.cancel();
     _sentSub?.cancel();
+    _activitySub?.cancel();
     super.dispose();
   }
 
@@ -626,6 +638,99 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                         ),
                         const SizedBox(width: 8),
                       ],
+                    Icon(Icons.arrow_forward_ios,
+                        size: 16,
+                        color: Colors.grey.shade500),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ── Activity Stream ───────────────────────────────────────────────
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Activity',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xff5C3A1E),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ActivityScreen()),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    vertical: 16, horizontal: 20),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.deepOrange.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.groups,
+                                size: 22, color: Colors.deepOrange),
+                          ),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              width: 18,
+                              height: 18,
+                              decoration: const BoxDecoration(
+                                color: Colors.deepOrange,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.favorite,
+                                  size: 10, color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Text(
+                        'Activity Stream',
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    if (_activityCount > 0) ...[  
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.deepOrange,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$_activityCount',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     Icon(Icons.arrow_forward_ios,
                         size: 16,
                         color: Colors.grey.shade500),

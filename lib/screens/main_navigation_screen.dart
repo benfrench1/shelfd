@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
+import '../services/activity_stream_service.dart';
 import '../services/badge_refresh_notifier.dart';
 import '../services/friend_code_service.dart';
 import '../services/friend_service.dart';
@@ -32,15 +33,21 @@ class _MainNavigationScreenState
   int _pendingRequestCount = 0;
   int _newlyAcceptedCount = 0;
   int _newlyReceivedAcceptedCount = 0;
+  int _activityCount = 0;
   StreamSubscription? _requestSub;
   StreamSubscription? _sentSub;
   StreamSubscription? _linkSub;
+  StreamSubscription? _activitySub;
   Set<String> _seenAcceptedIds = {};
   Set<String> _seenReceivedAcceptedIds = {};
   List<Map<String, dynamic>> _lastSentDocs = [];
   List<Map<String, dynamic>> _lastReceivedDocs = [];
   // Used to deduplicate the initial deep link vs the stream re-emitting it.
   Uri? _initialDeepLink;
+
+  // Easter egg: track rapid taps on the Future Reads tab.
+  int _futureReadsTapCount = 0;
+  DateTime? _firstFutureReadsTap;
 
   @override
   void initState() {
@@ -77,6 +84,14 @@ class _MainNavigationScreenState
     });
 
     BadgeRefreshNotifier.addListener(_refreshSeenIds);
+
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    if (myUid != null) {
+      _activitySub = ActivityStreamService.unseenCountStream(myUid)
+          .listen((count) {
+        if (mounted) setState(() => _activityCount = count);
+      });
+    }
   }
 
   void _recalcNewlyAccepted() {
@@ -173,6 +188,7 @@ class _MainNavigationScreenState
     _requestSub?.cancel();
     _sentSub?.cancel();
     _linkSub?.cancel();
+    _activitySub?.cancel();
     super.dispose();
   }
 
@@ -183,6 +199,39 @@ class _MainNavigationScreenState
     });
     // Refresh seen IDs whenever the user navigates away from the Profile tab
     if (index != 3) _refreshSeenIds();
+
+    // Easter egg: 5 quick taps on Future Reads.
+    if (index == 4) {
+      final now = DateTime.now();
+      if (_firstFutureReadsTap == null ||
+          now.difference(_firstFutureReadsTap!) > const Duration(seconds: 3)) {
+        _futureReadsTapCount = 1;
+        _firstFutureReadsTap = now;
+      } else {
+        _futureReadsTapCount++;
+        if (_futureReadsTapCount >= 5) {
+          _futureReadsTapCount = 0;
+          _firstFutureReadsTap = null;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'What does the future hold I wonder? Will Reading FC ever win the Champions League :)',
+                ),
+                duration: const Duration(seconds: 4),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                margin: const EdgeInsets.all(16),
+              ),
+            );
+        }
+      }
+    } else {
+      _futureReadsTapCount = 0;
+      _firstFutureReadsTap = null;
+    }
   }
 
   void _navigateToSearchFocused() {
@@ -237,7 +286,7 @@ class _MainNavigationScreenState
               clipBehavior: Clip.none,
               children: [
                 const Icon(Icons.person_outline),
-                if (_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount > 0)
+                if (_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount + _activityCount > 0)
                   Positioned(
                     top: -4,
                     right: -6,
@@ -250,7 +299,7 @@ class _MainNavigationScreenState
                       ),
                       child: Center(
                         child: Text(
-                          '${_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount}',
+                          '${_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount + _activityCount}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 9,
