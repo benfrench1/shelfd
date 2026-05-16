@@ -45,6 +45,10 @@ class _MainNavigationScreenState
   // Used to deduplicate the initial deep link vs the stream re-emitting it.
   Uri? _initialDeepLink;
 
+  // Easter egg: track rapid taps on the Future Reads tab.
+  int _futureReadsTapCount = 0;
+  DateTime? _firstFutureReadsTap;
+
   @override
   void initState() {
     super.initState();
@@ -195,6 +199,39 @@ class _MainNavigationScreenState
     });
     // Refresh seen IDs whenever the user navigates away from the Profile tab
     if (index != 3) _refreshSeenIds();
+
+    // Easter egg: 5 quick taps on Future Reads.
+    if (index == 4) {
+      final now = DateTime.now();
+      if (_firstFutureReadsTap == null ||
+          now.difference(_firstFutureReadsTap!) > const Duration(seconds: 3)) {
+        _futureReadsTapCount = 1;
+        _firstFutureReadsTap = now;
+      } else {
+        _futureReadsTapCount++;
+        if (_futureReadsTapCount >= 5) {
+          _futureReadsTapCount = 0;
+          _firstFutureReadsTap = null;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'What does the future hold I wonder? Will Reading FC ever win the Champions League :)',
+                ),
+                duration: const Duration(seconds: 4),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                margin: const EdgeInsets.all(16),
+              ),
+            );
+        }
+      }
+    } else {
+      _futureReadsTapCount = 0;
+      _firstFutureReadsTap = null;
+    }
   }
 
   void _navigateToSearchFocused() {

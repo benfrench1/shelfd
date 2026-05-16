@@ -30,6 +30,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   Set<String> _seenAcceptedIds = {};
   Set<String> _seenReceivedAcceptedIds = {};
+  // IDs of requests the current user accepted this session — shown with orange dot.
+  Set<String> _justAcceptedByMeIds = {};
 
   UserProfile? _searchResult;
   bool _searching = false;
@@ -40,6 +42,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   @override
   void initState() {
     super.initState();
+    _justAcceptedByMeIds = {};
     _loadSeenIds();
     _setupStreams();
   }
@@ -204,6 +207,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
     // Pre-emptively mark as seen so User B doesn't get a badge for a request
     // they accepted themselves.
     _seenReceivedAcceptedIds.add(req.id);
+    // Track for orange dot in the friends list.
+    if (mounted) setState(() => _justAcceptedByMeIds.add(req.id));
     final prefs = await SharedPreferences.getInstance();
     final existing =
         Set<String>.from(prefs.getStringList('seen_received_accepted_ids') ?? []);
@@ -636,22 +641,42 @@ class _FriendsScreenState extends State<FriendsScreen> {
               ),
             )
           else
-            ..._friends.map((req) => Card(
-                  child: ListTile(
-                    leading: _buildAvatarCircle(
-                        _profileCache[req.otherUid(_myUid)]),
-                    title: Text(
-                        req.otherUsername(_myUid) ?? 'Shelfd User'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.person_remove_outlined,
-                          color: Colors.red),
-                      tooltip: 'Remove Friend',
-                      onPressed: () =>
-                          _confirmDelete(req, 'Remove Friend'),
-                    ),
-                    onTap: () => _viewProfile(req.otherUid(_myUid)),
+            ..._friends.map((req) {
+              final isNew = _newlyAcceptedSent.any((r) => r.id == req.id) ||
+                  _newlyReceivedAccepted.any((r) => r.id == req.id) ||
+                  _justAcceptedByMeIds.contains(req.id);
+              return Card(
+                child: ListTile(
+                  leading: _buildAvatarCircle(
+                      _profileCache[req.otherUid(_myUid)]),
+                  title: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(req.otherUsername(_myUid) ?? 'Shelfd User'),
+                      if (isNew) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.deepOrange,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                )),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.person_remove_outlined,
+                        color: Colors.red),
+                    tooltip: 'Remove Friend',
+                    onPressed: () =>
+                        _confirmDelete(req, 'Remove Friend'),
+                  ),
+                  onTap: () => _viewProfile(req.otherUid(_myUid)),
+                ),
+              );
+            }),
 
           // ── Sent pending ───────────────────────────────────────
           if (_pendingSent.isNotEmpty) ...[
