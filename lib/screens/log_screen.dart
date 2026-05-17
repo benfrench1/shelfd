@@ -192,11 +192,26 @@ class _LogScreenState extends State<LogScreen> {
     }
   }
 
+  /// Returns the last word of an author string, used for surname sorting.
+  String _surname(String author) {
+    final parts = author.trim().split(RegExp(r'\s+'));
+    return parts.last.toLowerCase();
+  }
+
   void sortReviews() {
     if (sortOption == 'alphabetical') {
       reviews.sort((a, b) => a.title.compareTo(b.title));
     } else if (sortOption == 'rating') {
       reviews.sort((b, a) => a.rating.compareTo(b.rating));
+    } else if (sortOption == 'author') {
+      reviews.sort((a, b) {
+        final surnameCompare = _surname(a.author).compareTo(_surname(b.author));
+        if (surnameCompare != 0) return surnameCompare;
+        // Same surname — sort by full author name, then by title
+        final authorCompare = a.author.toLowerCase().compareTo(b.author.toLowerCase());
+        if (authorCompare != 0) return authorCompare;
+        return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+      });
     } else {
       reviews.sort((b, a) => a.dateAdded.compareTo(b.dateAdded));
     }
@@ -505,6 +520,7 @@ class _LogScreenState extends State<LogScreen> {
                         DropdownMenuItem(value: 'date', child: Text('Sort: Date')),
                         DropdownMenuItem(value: 'alphabetical', child: Text('Sort: A–Z')),
                         DropdownMenuItem(value: 'rating', child: Text('Sort: Rating')),
+                        DropdownMenuItem(value: 'author', child: Text('Sort: Author')),
                       ],
                     ),
                   ],
@@ -546,6 +562,31 @@ class _LogScreenState extends State<LogScreen> {
                               ],
                             );
                           })
+                        else if (sortOption == 'author') ...() {
+                          // Group by author (preserving sort order)
+                          final List<Widget> items = [];
+                          String? lastAuthor;
+                          for (final review in reviews) {
+                            if (review.author != lastAuthor) {
+                              lastAuthor = review.author;
+                              items.add(
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12, bottom: 4),
+                                  child: Text(
+                                    review.author,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xff5C3A1E),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                            items.add(buildCard(review));
+                          }
+                          return items;
+                        }()
                         else
                           ...reviews.map(buildCard),
                       ],
