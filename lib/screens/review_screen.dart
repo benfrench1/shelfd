@@ -394,30 +394,57 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
 
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: Colors.deepOrange,
-                        inactiveTrackColor: Colors.deepOrange.withOpacity(0.25),
-                        thumbColor: Colors.deepOrange,
-                        overlayColor: Colors.deepOrange.withOpacity(0.15),
-                        valueIndicatorColor: Colors.deepOrange,
-                      ),
-                      child: Slider(
-                        value: rating,
-                        min: 0,
-                        max: 10,
-                        divisions: 100,
-                        label: (rating == 0 || rating == 10)
-                            ? rating.toInt().toString()
-                            : rating.toStringAsFixed(1),
-                        onChanged: (value) {
-                          setState(() {
-                            rating = value;
-                          });
-                        },
-                      ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        // Decrement button
+                        _RatingStepButton(
+                          label: '−',
+                          onTap: () => setState(() {
+                            rating = double.parse(
+                              (rating - 0.1).clamp(0.0, 10.0).toStringAsFixed(1),
+                            );
+                          }),
+                        ),
+                        Expanded(
+                          child: SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              activeTrackColor: Colors.deepOrange,
+                              inactiveTrackColor: Colors.deepOrange.withOpacity(0.25),
+                              thumbColor: Colors.deepOrange,
+                              overlayColor: Colors.deepOrange.withOpacity(0.15),
+                              valueIndicatorColor: Colors.deepOrange,
+                              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                            ),
+                            child: Slider(
+                              value: rating,
+                              min: 0,
+                              max: 10,
+                              divisions: 100,
+                              label: (rating == 0 || rating == 10)
+                                  ? rating.toInt().toString()
+                                  : rating.toStringAsFixed(1),
+                              onChanged: (value) {
+                                setState(() {
+                                  rating = value;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                        // Increment button
+                        _RatingStepButton(
+                          label: '+',
+                          onTap: () => setState(() {
+                            rating = double.parse(
+                              (rating + 0.1).clamp(0.0, 10.0).toStringAsFixed(1),
+                            );
+                          }),
+                        ),
+                      ],
                     ),
 
+                    const SizedBox(height: 14),
                     Text(
                       (rating == 0 || rating == 10)
                           ? "${rating.toInt()} / 10"
@@ -497,6 +524,34 @@ class _ReviewScreenState extends State<ReviewScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Rating step button (− / +) ──────────────────────────────────────────────
+
+class _RatingStepButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _RatingStepButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.deepOrange,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            height: 1.0,
+          ),
         ),
       ),
     );

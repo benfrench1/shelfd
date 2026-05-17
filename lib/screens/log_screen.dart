@@ -527,24 +527,27 @@ class _LogScreenState extends State<LogScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        ...grouped.entries.map((entry) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                child: Text(
-                                  entry.key,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                        if (sortOption == 'date')
+                          ...grouped.entries.map((entry) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Text(
+                                    entry.key,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              ...entry.value.map(buildCard),
-                            ],
-                          );
-                        }),
+                                ...entry.value.map(buildCard),
+                              ],
+                            );
+                          })
+                        else
+                          ...reviews.map(buildCard),
                       ],
                     ),
             ),
