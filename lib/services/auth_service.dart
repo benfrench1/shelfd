@@ -82,6 +82,7 @@ class AuthService {
 
   /// Saves a username atomically.
   /// Throws [UsernameUnavailableException] if already taken by another user.
+  /// Throws [ProfanityException] if the username contains blocked language.
   /// Pass an empty string to clear the username.
   Future<void> saveUsername(String username) async {
     final uid = _auth.currentUser?.uid;
@@ -89,6 +90,9 @@ class AuthService {
 
     final trimmed = username.trim();
 
+    if (trimmed.isNotEmpty && _containsProfanity(trimmed)) {
+      throw const ProfanityException();
+    }
     // Fetch the current username so we can release the old reservation
     final userDoc = await _firestore.collection('users').doc(uid).get();
     final oldUsername = userDoc.data()?['username'] as String?;
@@ -264,4 +268,55 @@ class AuthService {
 
 class UsernameUnavailableException implements Exception {
   const UsernameUnavailableException();
+}
+
+class ProfanityException implements Exception {
+  const ProfanityException();
+}
+
+// ─── Profanity blocklist ───────────────────────────────────────────────────────
+// Words are matched against individual segments of a username after splitting
+// on underscores, dots, hyphens, and digit runs (whole-segment matching).
+// This means "shite_bookworm" → ["shite", "bookworm"] → blocked,
+// but "shitebookworm" (no separator) is treated as one segment → also blocked.
+// Add or remove words here as needed. All comparisons are case-insensitive.
+const List<String> _blockedTerms = [
+  // ── Tier 1: unambiguous slurs & strongest profanity ──
+  'nigger', 'nigga', 'chink', 'spic', 'kike', 'wetback', 'gook', 'raghead',
+  'tranny', 'faggot', 'fag', 'dyke', 'retard', 'cripple',
+  // ── Tier 2: common strong profanity ──
+  'fuck', 'fucker', 'fucking', 'motherfucker', 'motherfucking',
+  'cunt', 'cunts', 'cock', 'cocks', 'cocksucker',
+  'shit', 'shits', 'shitter', 'bullshit',
+  'ass', 'arse', 'asshole', 'arsehole', 'asswipe', 'arsewipe',
+  'bitch', 'bitches', 'bastard', 'bastards',
+  'whore', 'whores', 'slut', 'sluts',
+  'piss', 'pissed', 'pisser',
+  'dick', 'dicks', 'dickhead',
+  'pussy', 'pussies',
+  'twat', 'twats',
+  'wanker', 'wank',
+  'tit', 'tits', 'titties',
+  'prick', 'pricks',
+  'shite', 'bollock', 'bollocks',
+  'knob', 'knobs', 'knobhead',
+  // ── Tier 3: sexual / explicit ──
+  'porn', 'porno', 'xxx', 'dildo', 'vibrator', 'blowjob', 'handjob',
+  'cumshot', 'cum', 'orgasm', 'jizz', 'spunk',
+  // ── Tier 4: hate / extremist ──
+  'nazi', 'hitler', 'jihad', 'terrorist', 'isis',
+];
+
+bool _containsProfanity(String username) {
+  // Split on underscores, dots, hyphens, and runs of digits, then also check
+  // the whole unsplit string — catches both "bad_word" and "badword".
+  final segments = username
+      .toLowerCase()
+      .split(RegExp(r'[_\.\-0-9]+'))
+      ..add(username.toLowerCase());
+  for (final segment in segments) {
+    if (segment.isEmpty) continue;
+    if (_blockedTerms.contains(segment)) return true;
+  }
+  return false;
 }

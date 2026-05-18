@@ -296,7 +296,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           if (_isGoogleUser) ...[
             Card(
               child: ListTile(
-                leading: Image.asset('assets/images/g_google_logo.png',
+                leading: Image.asset('assets/images/g_google_logo_account_settings.png',
                     height: 20, width: 20),
                 title: const Text('Signed in with Google'),
                 subtitle: const Text(
@@ -741,6 +741,11 @@ class _UsernameEditSheetState extends State<_UsernameEditSheet> {
       setState(() {
         _saving = false;
         _errorMsg = 'That username is already taken. Please choose another.';
+      });
+    } on ProfanityException {
+      setState(() {
+        _saving = false;
+        _errorMsg = 'Woops, that username contains language that may be considered profanity.';
       });
     } catch (_) {
       setState(() {
