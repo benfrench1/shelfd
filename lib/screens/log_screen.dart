@@ -11,6 +11,135 @@ import 'review_screen.dart';
 
 const _kReactionEmojis = ['❤️', '🔥', '😂', '🥹', '🤙', '🫶'];
 
+// ─── Expandable review text ───────────────────────────────────────────────────
+
+class _ExpandableReviewText extends StatefulWidget {
+  final String text;
+  final String bookTitle;
+  const _ExpandableReviewText({required this.text, required this.bookTitle});
+
+  @override
+  State<_ExpandableReviewText> createState() => _ExpandableReviewTextState();
+}
+
+class _ExpandableReviewTextState extends State<_ExpandableReviewText> {
+  static const int _maxLines = 32;
+  // Fade begins at the start of the last 2 lines.
+  static const double _fadeStart = 1.0 - 2.0 / _maxLines;
+
+  void _showFullReview() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, controller) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: Text(
+                widget.bookTitle,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: controller,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                child: Text(widget.text,
+                    style: const TextStyle(fontSize: 14, height: 1.55)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final span = TextSpan(
+          text: widget.text, style: const TextStyle(fontSize: 14));
+      final tp = TextPainter(
+          text: span,
+          maxLines: _maxLines,
+          textDirection: TextDirection.ltr)
+        ..layout(maxWidth: constraints.maxWidth);
+      final overflows = tp.didExceedMaxLines;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (overflows)
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.black, Colors.black, Colors.transparent],
+                stops: [0.0, _fadeStart, 1.0],
+              ).createShader(bounds),
+              blendMode: BlendMode.dstIn,
+              child: Text(
+                widget.text,
+                maxLines: _maxLines,
+                overflow: TextOverflow.clip,
+                style: const TextStyle(fontSize: 14, height: 1.55),
+              ),
+            )
+          else
+            Text(
+              widget.text,
+              style: const TextStyle(fontSize: 14, height: 1.55),
+            ),
+          if (overflows) ...[  
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: _showFullReview,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                      color: Colors.deepOrange, width: 1.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Read all',
+                  style: TextStyle(
+                    color: Colors.deepOrange,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      );
+    });
+  }
+}
+
 class LogScreen extends StatefulWidget {
   const LogScreen({super.key});
 
@@ -63,11 +192,26 @@ class _LogScreenState extends State<LogScreen> {
     }
   }
 
+  /// Returns the last word of an author string, used for surname sorting.
+  String _surname(String author) {
+    final parts = author.trim().split(RegExp(r'\s+'));
+    return parts.last.toLowerCase();
+  }
+
   void sortReviews() {
     if (sortOption == 'alphabetical') {
       reviews.sort((a, b) => a.title.compareTo(b.title));
     } else if (sortOption == 'rating') {
       reviews.sort((b, a) => a.rating.compareTo(b.rating));
+    } else if (sortOption == 'author') {
+      reviews.sort((a, b) {
+        final surnameCompare = _surname(a.author).compareTo(_surname(b.author));
+        if (surnameCompare != 0) return surnameCompare;
+        // Same surname — sort by full author name, then by title
+        final authorCompare = a.author.toLowerCase().compareTo(b.author.toLowerCase());
+        if (authorCompare != 0) return authorCompare;
+        return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+      });
     } else {
       reviews.sort((b, a) => a.dateAdded.compareTo(b.dateAdded));
     }
@@ -307,7 +451,10 @@ class _LogScreenState extends State<LogScreen> {
                 children: [
                   // ONLY review comment shown in expanded view
                   if (review.comment.isNotEmpty)
-                    Text(review.comment)
+                    _ExpandableReviewText(
+                      text: review.comment,
+                      bookTitle: '${review.title} (${review.year})',
+                    )
                   else
                     const Text(
                       "No review written",
@@ -373,6 +520,7 @@ class _LogScreenState extends State<LogScreen> {
                         DropdownMenuItem(value: 'date', child: Text('Sort: Date')),
                         DropdownMenuItem(value: 'alphabetical', child: Text('Sort: A–Z')),
                         DropdownMenuItem(value: 'rating', child: Text('Sort: Rating')),
+                        DropdownMenuItem(value: 'author', child: Text('Sort: Author')),
                       ],
                     ),
                   ],
@@ -395,24 +543,52 @@ class _LogScreenState extends State<LogScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        ...grouped.entries.map((entry) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                child: Text(
-                                  entry.key,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                        if (sortOption == 'date')
+                          ...grouped.entries.map((entry) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Text(
+                                    entry.key,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              ...entry.value.map(buildCard),
-                            ],
-                          );
-                        }),
+                                ...entry.value.map(buildCard),
+                              ],
+                            );
+                          })
+                        else if (sortOption == 'author') ...() {
+                          // Group by author (preserving sort order)
+                          final List<Widget> items = [];
+                          String? lastAuthor;
+                          for (final review in reviews) {
+                            if (review.author != lastAuthor) {
+                              lastAuthor = review.author;
+                              items.add(
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12, bottom: 4),
+                                  child: Text(
+                                    review.author,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xff5C3A1E),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                            items.add(buildCard(review));
+                          }
+                          return items;
+                        }()
+                        else
+                          ...reviews.map(buildCard),
                       ],
                     ),
             ),
@@ -441,7 +617,7 @@ class _ReactorSheet extends StatefulWidget {
 }
 
 class _ReactorSheetState extends State<_ReactorSheet> {
-  List<({String display, bool isPrivate, bool isFriend})>? _entries;
+  List<({String display, bool isPrivate, bool isFriend, String? avatarAsset, String? photoUrl})>? _entries;
 
   @override
   void initState() {
@@ -462,12 +638,12 @@ class _ReactorSheetState extends State<_ReactorSheet> {
     // Fetch all profiles and friendship statuses in parallel
     final results = await Future.wait(reactorUids.map((uid) async {
       if (uid == myUid) {
-        return (display: 'You', isPrivate: false, isFriend: false);
+        return (display: 'You', isPrivate: false, isFriend: false, avatarAsset: null, photoUrl: null);
       }
 
       final profile = await FriendService.getUserProfile(uid);
       if (profile == null) {
-        return (display: 'Unknown user', isPrivate: true, isFriend: false);
+        return (display: 'Unknown user', isPrivate: true, isFriend: false, avatarAsset: null, photoUrl: null);
       }
 
       final friendResult = await FriendService.getFriendshipStatus(uid);
@@ -480,9 +656,11 @@ class _ReactorSheetState extends State<_ReactorSheet> {
               : profile.displayName,
           isPrivate: false,
           isFriend: isFriend,
+          avatarAsset: profile.avatarAsset,
+          photoUrl: profile.photoUrl,
         );
       } else {
-        return (display: 'Private user · Not a friend', isPrivate: true, isFriend: false);
+        return (display: 'Private user · Not a friend', isPrivate: true, isFriend: false, avatarAsset: null, photoUrl: null);
       }
     }));
 
@@ -535,20 +713,30 @@ class _ReactorSheetState extends State<_ReactorSheet> {
                         itemCount: _entries!.length,
                         itemBuilder: (_, i) {
                           final e = _entries![i];
+                          final ImageProvider? avatar = e.avatarAsset != null
+                              ? AssetImage(e.avatarAsset!) as ImageProvider
+                              : e.photoUrl != null
+                                  ? NetworkImage(e.photoUrl!)
+                                  : null;
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
-                            leading: Icon(
-                              e.isPrivate
-                                  ? Icons.lock_outline
-                                  : e.isFriend
-                                      ? Icons.people_outline
-                                      : Icons.person_outline,
-                              color: e.isPrivate
-                                  ? Colors.grey
-                                  : e.isFriend
-                                      ? Colors.deepOrange
-                                      : Colors.grey.shade600,
-                            ),
+                            leading: e.isPrivate
+                                ? CircleAvatar(
+                                    backgroundColor: Colors.grey.shade200,
+                                    child: Icon(Icons.lock_outline,
+                                        size: 20,
+                                        color: Colors.grey.shade500),
+                                  )
+                                : CircleAvatar(
+                                    backgroundColor:
+                                        const Color(0xff5C3A1E).withOpacity(0.12),
+                                    backgroundImage: avatar,
+                                    child: avatar == null
+                                        ? Icon(Icons.person,
+                                            size: 20,
+                                            color: const Color(0xff5C3A1E))
+                                        : null,
+                                  ),
                             title: Text(
                               e.display,
                               style: TextStyle(

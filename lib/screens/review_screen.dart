@@ -394,30 +394,94 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
 
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: Colors.deepOrange,
-                        inactiveTrackColor: Colors.deepOrange.withOpacity(0.25),
-                        thumbColor: Colors.deepOrange,
-                        overlayColor: Colors.deepOrange.withOpacity(0.15),
-                        valueIndicatorColor: Colors.deepOrange,
-                      ),
-                      child: Slider(
-                        value: rating,
-                        min: 0,
-                        max: 10,
-                        divisions: 100,
-                        label: (rating == 0 || rating == 10)
-                            ? rating.toInt().toString()
-                            : rating.toStringAsFixed(1),
-                        onChanged: (value) {
-                          setState(() {
-                            rating = value;
-                          });
-                        },
-                      ),
+                    const SizedBox(height: 34),
+                    Row(
+                      children: [
+                        // Decrement button
+                        _RatingStepButton(
+                          label: '−',
+                          onTap: () => setState(() {
+                            rating = double.parse(
+                              (rating - 0.1).clamp(0.0, 10.0).toStringAsFixed(1),
+                            );
+                          }),
+                        ),
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              const double trackPad = 12.0;
+                              final double w = constraints.maxWidth;
+                              final double thumbLeft =
+                                  trackPad + (rating / 10.0) * (w - 2 * trackPad);
+                              final String bubbleLabel = (rating == 0 || rating == 10)
+                                  ? rating.toInt().toString()
+                                  : rating.toStringAsFixed(1);
+                              return Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  SliderTheme(
+                                    data: SliderTheme.of(context).copyWith(
+                                      activeTrackColor: Colors.deepOrange,
+                                      inactiveTrackColor:
+                                          Colors.deepOrange.withOpacity(0.25),
+                                      thumbColor: Colors.deepOrange,
+                                      overlayColor:
+                                          Colors.deepOrange.withOpacity(0.15),
+                                      overlayShape: const RoundSliderOverlayShape(
+                                          overlayRadius: 12),
+                                      showValueIndicator: ShowValueIndicator.never,
+                                    ),
+                                    child: Slider(
+                                      value: rating,
+                                      min: 0,
+                                      max: 10,
+                                      divisions: 100,
+                                      label: bubbleLabel,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          rating = value;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: -30,
+                                    left: thumbLeft - 16,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.deepOrange,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        bubbleLabel,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                        // Increment button
+                        _RatingStepButton(
+                          label: '+',
+                          onTap: () => setState(() {
+                            rating = double.parse(
+                              (rating + 0.1).clamp(0.0, 10.0).toStringAsFixed(1),
+                            );
+                          }),
+                        ),
+                      ],
                     ),
 
+                    const SizedBox(height: 14),
                     Text(
                       (rating == 0 || rating == 10)
                           ? "${rating.toInt()} / 10"
@@ -430,6 +494,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       controller: commentController,
                       maxLines: 3,
                       textCapitalization: TextCapitalization.sentences,
+                      spellCheckConfiguration: const SpellCheckConfiguration(),
                       decoration: const InputDecoration(
                         labelText: "Comment",
                         border: OutlineInputBorder(),
@@ -497,6 +562,34 @@ class _ReviewScreenState extends State<ReviewScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Rating step button (− / +) ──────────────────────────────────────────────
+
+class _RatingStepButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _RatingStepButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.deepOrange,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            height: 1.0,
+          ),
         ),
       ),
     );

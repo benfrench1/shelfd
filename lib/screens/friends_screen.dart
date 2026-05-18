@@ -118,7 +118,6 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   Future<void> _fetchProfiles(Iterable<String> uids) async {
     for (final uid in uids) {
-      if (_profileCache.containsKey(uid)) continue;
       final profile = await FriendService.getUserProfile(uid);
       if (profile != null && mounted) {
         setState(() => _profileCache[uid] = profile);
@@ -344,7 +343,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                   contentPadding: EdgeInsets.zero,
                                   leading: _buildAvatarCircle(
                                     _profileCache[req.otherUid(_myUid)]),
-                                  title: Text(req.otherUsername(_myUid) ??
+                                  title: Text(_profileCache[req.otherUid(_myUid)]?.displayName ?? req.otherUsername(_myUid) ??
                                       'Shelfd User'),
                                   subtitle:
                                       const Text('Wants to be your friend'),
@@ -652,7 +651,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   title: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(req.otherUsername(_myUid) ?? 'Shelfd User'),
+                      Text(_profileCache[req.otherUid(_myUid)]?.displayName ?? req.otherUsername(_myUid) ?? 'Shelfd User'),
                       if (isNew) ...[
                         const SizedBox(width: 6),
                         Container(
@@ -690,7 +689,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     leading: _buildAvatarCircle(
                         _profileCache[req.otherUid(_myUid)]),
                     title: Text(
-                        req.otherUsername(_myUid) ?? 'Shelfd User'),
+                        _profileCache[req.otherUid(_myUid)]?.displayName ?? req.otherUsername(_myUid) ?? 'Shelfd User'),
                     subtitle: const Text('Request pending…'),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,

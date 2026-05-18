@@ -70,10 +70,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/images/shelfd_app_tile.png
-    - assets/images/shelfd_full_logo.png
-    - assets/images/g_google_logo.png
-    - assets/images/shelf_wallpaper_2.png
+    - assets/images/
     - assets/avatars/
 
   # An image asset can refer to one or more resolution-specific "variants", see
