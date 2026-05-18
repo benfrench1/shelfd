@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/auth_service.dart';
 import '../services/book_service.dart';
 import '../services/storage_service.dart';
@@ -74,6 +75,32 @@ class _SearchScreenState
           .map((b) => '${b.title.toLowerCase()}|||${b.author.toLowerCase()}')
           .toSet();
     });
+  }
+
+  Future<void> _openIsbnScanner() async {
+    final isbn = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _IsbnScannerSheet(),
+    );
+    if (isbn == null || !mounted) return;
+    controller.text = isbn;
+    setState(() => isLoading = true);
+    final results = await BookService.searchByIsbn(isbn);
+    await loadReviews();
+    setState(() {
+      books = results;
+      isLoading = false;
+    });
+    if (results.isEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No book found for that barcode. Try searching by title instead.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<void> search() async {
@@ -163,15 +190,26 @@ class _SearchScreenState
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: TextField(
-                      controller: controller,
-                      focusNode: _focusNode,
-                      decoration: const InputDecoration(
-                        icon: Icon(Icons.search),
-                        hintText: "Search books, authors, genres...",
-                        border: InputBorder.none,
-                      ),
-                      onSubmitted: (_) => search(),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: controller,
+                            focusNode: _focusNode,
+                            decoration: const InputDecoration(
+                              icon: Icon(Icons.search),
+                              hintText: "Search books, authors, genres...",
+                              border: InputBorder.none,
+                            ),
+                            onSubmitted: (_) => search(),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const _BarcodeIcon(color: Color(0xff5C3A1E), size: 22),
+                          tooltip: 'Scan ISBN barcode',
+                          onPressed: _openIsbnScanner,
+                        ),
+                      ],
                     ),
                   ),
 
@@ -324,6 +362,114 @@ class _SearchScreenState
   }
 }
 
+// ─── ISBN Barcode Scanner Sheet ───────────────────────────────────────────────
+
+class _IsbnScannerSheet extends StatefulWidget {
+  const _IsbnScannerSheet();
+
+  @override
+  State<_IsbnScannerSheet> createState() => _IsbnScannerSheetState();
+}
+
+class _IsbnScannerSheetState extends State<_IsbnScannerSheet> {
+  final _controller = MobileScannerController();
+  bool _handled = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onDetect(BarcodeCapture capture) {
+    if (_handled) return;
+    final barcode = capture.barcodes.firstOrNull;
+    if (barcode == null) return;
+    // Books use EAN-13 (ISBN-13) or EAN-8; also accept Code-128 for older editions
+    final format = barcode.format;
+    if (format != BarcodeFormat.ean13 &&
+        format != BarcodeFormat.ean8 &&
+        format != BarcodeFormat.code128) return;
+    final raw = barcode.rawValue;
+    if (raw == null || raw.isEmpty) return;
+    _handled = true;
+    Navigator.of(context).pop(raw);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.72,
+        child: Stack(
+          children: [
+            MobileScanner(controller: _controller, onDetect: _onDetect),
+
+            // Close button
+            Positioned(
+              top: 16,
+              right: 16,
+              child: IconButton(
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black54,
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+
+            // Header label
+            Positioned(
+              top: 20,
+              left: 0,
+              right: 60,
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Scan ISBN Barcode',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15),
+                  ),
+                ),
+              ),
+            ),
+
+            // Bottom instruction
+            Positioned(
+              bottom: 36,
+              left: 24,
+              right: 24,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'Point the camera at the barcode on the back of the book',
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _WishlistButton extends StatefulWidget {
   final Book book;
   final bool isWishlisted;
@@ -399,4 +545,56 @@ class _WishlistButtonState extends State<_WishlistButton> {
       onPressed: () => _toggle(context),
     );
   }
+}
+
+// ─── Barcode icon ─────────────────────────────────────────────────────────────
+
+class _BarcodeIcon extends StatelessWidget {
+  final Color color;
+  final double size;
+  const _BarcodeIcon({required this.color, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(painter: _BarcodePainter(color)),
+    );
+  }
+}
+
+class _BarcodePainter extends CustomPainter {
+  final Color color;
+  const _BarcodePainter(this.color);
+
+  // Widths of alternating bar/gap pairs (1 = narrow, 2 = wide).
+  // Represents a realistic-looking barcode pattern.
+  static const List<int> _pattern = [
+    2, 1, 1, 2, 1, 1, 2, 1, 2, 1,
+    1, 2, 1, 1, 1, 2, 2, 1, 1, 2,
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final unit = size.width / (_pattern.fold(0, (a, b) => a + b));
+    const barHeightFraction = 0.75;
+    final barTop = size.height * (1 - barHeightFraction) / 2;
+    final barBottom = barTop + size.height * barHeightFraction;
+
+    double x = 0;
+    for (int i = 0; i < _pattern.length; i++) {
+      final w = _pattern[i] * unit;
+      if (i.isEven) {
+        // Even indices = bars (filled)
+        canvas.drawRect(Rect.fromLTRB(x, barTop, x + w, barBottom), paint);
+      }
+      // Odd indices = gaps (skip)
+      x += w;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BarcodePainter old) => old.color != color;
 }

@@ -47,6 +47,22 @@ class BookService {
     return [];
   }
 
+  /// Looks up a single book by ISBN (ISBN-10 or ISBN-13).
+  /// Uses OpenLibrary's ISBN-specific search endpoint for more accurate results.
+  static Future<List<Book>> searchByIsbn(String isbn) async {
+    final url = Uri.parse(
+        'https://openlibrary.org/search.json?isbn=$isbn');
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final docs = data['docs'] as List;
+      if (docs.isNotEmpty) {
+        return docs.take(5).map((json) => Book.fromJson(json)).toList();
+      }
+    }
+    return [];
+  }
+
   /// Returns up to 5 recommended books based on the user's reading log.
   /// Searches OpenLibrary for books by the user's most-read authors and
   /// filters out titles already in the log.
