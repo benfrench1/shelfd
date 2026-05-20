@@ -44,7 +44,7 @@ class WishlistService {
     final snapshot = await _wishlistCollection()
         .where('title', isEqualTo: title)
         .where('author', isEqualTo: author)
-        .get();
+        .get(const GetOptions(source: Source.cache));
     for (final doc in snapshot.docs) {
       await doc.reference.delete();
     }

@@ -193,6 +193,15 @@ class _WishlistScreenState extends State<WishlistScreen> {
                                 width: 46,
                                 height: 64,
                                 fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: 46,
+                                  height: 64,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Icon(Icons.book, color: Colors.grey),
+                                ),
                               ),
                             )
                           : Container(
