@@ -77,7 +77,7 @@ Note on _if_ limits were reached:
 - Would need the Pay as you go plan with the following details:
     - No-cost up to 5 GB
     - Then $0.10/GB
-- For now will use a set of predefined default images whcih can be stored in `assests`
+- For now will use a set of predefined default images whcih can be stored in `assests`.
 
 #### Mobile data usage
 
