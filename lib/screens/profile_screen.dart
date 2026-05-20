@@ -333,22 +333,106 @@ class _UserProfileTabState extends State<_UserProfileTab> {
         : (user?.photoURL != null ? NetworkImage(user!.photoURL!) : null);
     if (image == null) return;
 
+    // Build the message pool: 6 generic messages + any avatar-specific ones.
+    final messages = [
+      'Looking good!',
+      'I like it!',
+      'Very stylish 😎',
+      "Now that's an avatar!",
+      'Iconic 👌',
+      'A true Shelfd legend!',
+    ];
+    if (_avatarAsset != null) {
+      if (_avatarAsset!.contains('sherlock')) {
+        messages.add('Elementary my dear Watson');
+      }
+      if (_avatarAsset!.contains('godfather')) {
+        messages.add("I'm going to make him an offer he can't refuse");
+      }
+      if (_avatarAsset!.contains('ronaldinho')) {
+        messages.add('Ronaldinhoooooo :)');
+      }
+      if (_avatarAsset!.contains('albert')) {
+        messages.add('If I were to start taking care of my grooming, I would no longer be my own self.');
+      }
+    }
+
+    // Mutable state lives outside StatefulBuilder so it survives rebuilds.
+    int tapCount = 0;
+    DateTime? firstTapTime;
+    int messageIndex = 0;
+    String? visibleMessage;
+
     showDialog(
       context: context,
       barrierColor: Colors.black87,
       barrierDismissible: true,
-      builder: (_) => GestureDetector(
-        onTap: () => Navigator.of(context).pop(),
-        behavior: HitTestBehavior.opaque,
-        child: Center(
-          child: GestureDetector(
-            onTap: () {}, // prevent tap on image from closing
-            child: CircleAvatar(
-              radius: 140,
-              backgroundImage: image,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          void handleAvatarTap() {
+            final now = DateTime.now();
+            if (firstTapTime == null ||
+                now.difference(firstTapTime!).inMilliseconds > 800) {
+              tapCount = 1;
+              firstTapTime = now;
+            } else {
+              tapCount++;
+            }
+            if (tapCount >= 3) {
+              tapCount = 0;
+              firstTapTime = null;
+              final msg = messages[messageIndex % messages.length];
+              messageIndex++;
+              setDialogState(() => visibleMessage = msg);
+            }
+          }
+
+          return GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            behavior: HitTestBehavior.opaque,
+            child: Center(
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: handleAvatarTap,
+                    child: CircleAvatar(
+                      radius: 140,
+                      backgroundImage: image,
+                    ),
+                  ),
+                  if (visibleMessage != null)
+                    Positioned(
+                      top: 300, // 280px avatar + 20px gap
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(ctx).size.width - 64,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.92),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Text(
+                            visibleMessage!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
