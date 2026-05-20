@@ -103,10 +103,3 @@ service cloud.firestore {
     - Only the two parties involved can read a request — no third party can see your requests.
     - Either party can delete (cancel/decline/unfriend)
 
-### Firebase Storage
-
-- If enabling the ability for users to upload a profile picture (gallery or camera in the moment) the Storage feature would need to be used which by default doesnt come with the Spark (no-cost) plan.
-- Would need the Pay as you go plan with the following details:
-    - No-cost up to 5 GB
-    - Then $0.10/GB
-- For now will use a set of predefined default images whcih can be stored in `assests`

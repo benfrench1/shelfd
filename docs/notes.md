@@ -71,6 +71,13 @@ Firestore Spark (free) plan limits:
 Note on _if_ limits were reached:
 "The way the Spark plan operates is that if your project exceeds the no-cost quota limit in a calendar month for any specific product (like Firestore reads), your project's usage of that particular product will be shut off for the remainder of that month."
 
+#### Firebase Storage
+
+- If enabling the ability for users to upload a profile picture (gallery or camera in the moment) the Storage feature would need to be used which by default doesnt come with the Spark (no-cost) plan.
+- Would need the Pay as you go plan with the following details:
+    - No-cost up to 5 GB
+    - Then $0.10/GB
+- For now will use a set of predefined default images whcih can be stored in `assests`
 
 #### Mobile data usage
 
