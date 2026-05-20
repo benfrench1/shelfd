@@ -406,6 +406,11 @@ class _LogScreenState extends State<LogScreen> {
                         width: 50,
                         height: 70,
                         fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox(
+                          width: 50,
+                          height: 70,
+                          child: Icon(Icons.book, size: 40),
+                        ),
                       )
                     : const SizedBox(
                         width: 50,

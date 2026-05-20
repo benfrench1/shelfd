@@ -30,6 +30,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   bool isFavourite = false;
   bool _isWishlisted = false;
+  bool _isSaving = false;
 
   bool _globalRatingLoading = true;
   double? _globalRating;
@@ -129,6 +130,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   void saveReview() async {
+    setState(() => _isSaving = true);
+
     final review = BookReview(
       title: widget.book.title,
       author: widget.book.author,
@@ -143,32 +146,70 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     final isNewReview = widget.reviewIndex == null;
 
-    // Capture count before saving so we can detect newly crossed thresholds
-    final countBefore = isNewReview
-        ? (await StorageService.getReviews()).length
-        : 0;
+    // Get count from cache before the save starts — instant, works offline
+    int? countBefore;
+    if (isNewReview) {
+      try {
+        countBefore = (await StorageService.getReviewsFromCache()).length;
+      } catch (_) {
+        // Cache unavailable — achievement check skipped for this save
+      }
+    }
 
+    // Determine which achievements will unlock
+    final toUnlock = (isNewReview && countBefore != null)
+        ? kAchievements
+            .where((a) => a.threshold > 0 && a.threshold == countBefore! + 1)
+            .toList()
+        : <Achievement>[];
+
+    // Start the save in the background — timeout clock begins now
+    bool showOfflineMessage = false;
+    final saveFuture = _doSave(review).timeout(
+      const Duration(seconds: 6),
+      onTimeout: () {
+        showOfflineMessage = true;
+      },
+    );
+
+    // Show achievement dialogs immediately while the save runs in the background
+    for (final achievement in toUnlock) {
+      if (!mounted) break;
+      await _showAchievementDialog(achievement);
+      if (!mounted) return;
+    }
+
+    // Now wait for the save to finish (may already be done, or still counting down)
+    try {
+      await saveFuture;
+    } catch (_) {
+      showOfflineMessage = true;
+    }
+
+    if (mounted) {
+      setState(() => _isSaving = false);
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.pop(context);
+      if (showOfflineMessage) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Review saved offline. It will sync automatically when your connection is restored.',
+            ),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _doSave(BookReview review) async {
     if (widget.reviewIndex != null) {
       await StorageService.updateReview(widget.reviewIndex!, review);
     } else {
       await StorageService.saveReview(review);
     }
-
-    if (!mounted) return;
-
-    // For new reviews, check if saving just crossed an achievement threshold
-    if (isNewReview) {
-      final countAfter = countBefore + 1;
-      final unlocked = kAchievements.where(
-        (a) => a.threshold > 0 && a.threshold == countAfter,
-      );
-      for (final achievement in unlocked) {
-        await _showAchievementDialog(achievement);
-        if (!mounted) return;
-      }
-    }
-
-    Navigator.pop(context);
   }
 
   Future<void> _showAchievementDialog(Achievement achievement) async {
@@ -330,6 +371,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                 getCoverUrl(book.coverId)!,
                                 height: 360,
                                 fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => const SizedBox(
+                                  height: 360,
+                                  child: Center(
+                                    child: Icon(Icons.book, size: 80, color: Colors.grey),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -340,6 +387,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   child: Image.network(
                     getCoverUrl(book.coverId)!,
                     height: 160,
+                    errorBuilder: (_, __, ___) => const SizedBox(
+                      height: 160,
+                      child: Center(
+                        child: Icon(Icons.book, size: 60, color: Colors.grey),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -554,11 +607,20 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: saveReview,
-                child: const Text(
-                  "Save Review",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
+                onPressed: _isSaving ? null : saveReview,
+                child: _isSaving
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        "Save Review",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
               ),
             ),
           ],

@@ -434,6 +434,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: 120,
                         width: double.infinity,
                         fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 120,
+                          width: double.infinity,
+                          color: Colors.grey.shade200,
+                          child: const Center(
+                            child: Icon(Icons.book, size: 40, color: Colors.grey),
+                          ),
+                        ),
                       )
                     : Container(
                         height: 120,

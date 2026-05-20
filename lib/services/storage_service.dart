@@ -14,23 +14,40 @@ class StorageService {
 
   static Future<void> saveReview(BookReview review) async {
     await _reviewsCollection().add(review.toJson());
-    await WishlistService.removeByTitleAuthor(review.title, review.author);
+    try {
+      await WishlistService.removeByTitleAuthor(review.title, review.author);
+    } catch (_) {
+      // Wishlist removal may fail offline; Firestore will sync when reconnected
+    }
   }
 
   static Future<void> updateReview(int index, BookReview review) async {
     final snapshot = await _reviewsCollection()
         .orderBy('dateAdded')
-        .get();
+        .get(const GetOptions(source: Source.cache));
     if (index < snapshot.docs.length) {
       await snapshot.docs[index].reference.update(review.toJson());
     }
-    await WishlistService.removeByTitleAuthor(review.title, review.author);
+    try {
+      await WishlistService.removeByTitleAuthor(review.title, review.author);
+    } catch (_) {
+      // Wishlist removal may fail offline; Firestore will sync when reconnected
+    }
   }
 
   static Future<List<BookReview>> getReviews() async {
     final snapshot = await _reviewsCollection()
         .orderBy('dateAdded')
         .get();
+    return snapshot.docs
+        .map((doc) => BookReview.fromJson(doc.data(), id: doc.id))
+        .toList();
+  }
+
+  static Future<List<BookReview>> getReviewsFromCache() async {
+    final snapshot = await _reviewsCollection()
+        .orderBy('dateAdded')
+        .get(const GetOptions(source: Source.cache));
     return snapshot.docs
         .map((doc) => BookReview.fromJson(doc.data(), id: doc.id))
         .toList();

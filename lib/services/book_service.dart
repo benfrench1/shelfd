@@ -22,7 +22,7 @@ class BookService {
               "https://openlibrary.org/search.json?q=$attempt");
 
       final response =
-          await http.get(url);
+          await http.get(url).timeout(const Duration(seconds: 10));
 
       if (response.statusCode ==
           200) {
@@ -52,7 +52,7 @@ class BookService {
   static Future<List<Book>> searchByIsbn(String isbn) async {
     final url = Uri.parse(
         'https://openlibrary.org/search.json?isbn=$isbn');
-    final response = await http.get(url);
+    final response = await http.get(url).timeout(const Duration(seconds: 10));
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final docs = data['docs'] as List;

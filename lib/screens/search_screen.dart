@@ -34,6 +34,7 @@ class _SearchScreenState
   StreamSubscription<String?>? _avatarSub;
 
   bool isLoading = false;
+  String? _searchError;
 
   @override
   void initState() {
@@ -86,37 +87,54 @@ class _SearchScreenState
     );
     if (isbn == null || !mounted) return;
     controller.text = isbn;
-    setState(() => isLoading = true);
-    final results = await BookService.searchByIsbn(isbn);
-    await loadReviews();
     setState(() {
-      books = results;
-      isLoading = false;
+      isLoading = true;
+      _searchError = null;
     });
-    if (results.isEmpty && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No book found for that barcode. Try searching by title instead.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    try {
+      final results = await BookService.searchByIsbn(isbn);
+      await loadReviews();
+      setState(() {
+        books = results;
+        isLoading = false;
+      });
+      if (results.isEmpty && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No book found for that barcode. Try searching by title instead.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (_) {
+      setState(() {
+        isLoading = false;
+        _searchError =
+            'The book could not be found right now. Please check your internet connection and try again.';
+      });
     }
   }
 
   Future<void> search() async {
     setState(() {
       isLoading = true;
+      _searchError = null;
     });
 
-    final results =
-        await BookService.searchBooks(controller.text);
-
-    await loadReviews();
-
-    setState(() {
-      books = results;
-      isLoading = false;
-    });
+    try {
+      final results = await BookService.searchBooks(controller.text);
+      await loadReviews();
+      setState(() {
+        books = results;
+        isLoading = false;
+      });
+    } catch (_) {
+      setState(() {
+        isLoading = false;
+        _searchError =
+            'The book could not be found right now. Please check your internet connection and try again.';
+      });
+    }
   }
 
   BookReview? findReview(Book book) {
@@ -242,6 +260,23 @@ class _SearchScreenState
               child: CircularProgressIndicator(),
             ),
 
+          if (_searchError != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.wifi_off, color: Colors.grey),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _searchError!,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           Expanded(
             child: ListView.builder(
               itemCount: books.length,
@@ -254,8 +289,15 @@ class _SearchScreenState
                       ? Image.network(
                           getCoverUrl(book.coverId)!,
                           width: 40,
+                          errorBuilder: (_, __, ___) => const SizedBox(
+                            width: 40,
+                            child: Icon(Icons.book),
+                          ),
                         )
-                      : const Icon(Icons.book),
+                      : const SizedBox(
+                          width: 40,
+                          child: Icon(Icons.book),
+                        ),
 
                   title: Text(book.title),
 
