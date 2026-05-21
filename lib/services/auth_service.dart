@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -30,6 +32,31 @@ class AuthService {
       password: password,
     );
     await credential.user?.sendEmailVerification();
+
+    // Generate and save a unique username before signing out.
+    // If this fails (e.g. no network), ensureUserProfile() will retry on
+    // the user's first sign-in.
+    final uid = credential.user?.uid;
+    if (uid != null) {
+      try {
+        final username = await _generateUniqueUsername();
+        await _firestore.runTransaction((tx) async {
+          tx.set(_firestore.collection('usernames').doc(username), {'uid': uid});
+          tx.set(
+            _firestore.collection('users').doc(uid),
+            {
+              'username': username,
+              'createdAt': FieldValue.serverTimestamp(),
+              'privacyLevel': 'public',
+            },
+            SetOptions(merge: true),
+          );
+        });
+      } catch (_) {
+        // Will be assigned on first sign-in via ensureUserProfile().
+      }
+    }
+
     await _auth.signOut();
   }
 
@@ -98,15 +125,7 @@ class AuthService {
     final oldUsername = userDoc.data()?['username'] as String?;
 
     if (trimmed.isEmpty) {
-      // Clearing the username
-      await _firestore.runTransaction((tx) async {
-        if (oldUsername != null && oldUsername.isNotEmpty) {
-          tx.delete(_firestore.collection('usernames').doc(oldUsername));
-        }
-        tx.update(_firestore.collection('users').doc(uid),
-            {'username': FieldValue.delete()});
-      });
-      return;
+      throw const UsernameBlankException();
     }
 
     if (trimmed == oldUsername) return; // no change
@@ -247,6 +266,26 @@ class AuthService {
           .doc(uid)
           .set(updates, SetOptions(merge: true));
     }
+
+    // Assign a username if the user doesn't have one yet.
+    // This handles: existing users, Google sign-in first-timers, and any
+    // registration where the initial username write failed.
+    final existingUsername = data['username'] as String?;
+    if (existingUsername == null || existingUsername.isEmpty) {
+      try {
+        final username = await _generateUniqueUsername();
+        await _firestore.runTransaction((tx) async {
+          tx.set(_firestore.collection('usernames').doc(username), {'uid': uid});
+          tx.set(
+            _firestore.collection('users').doc(uid),
+            {'username': username},
+            SetOptions(merge: true),
+          );
+        });
+      } catch (_) {
+        // Will retry on the next app open.
+      }
+    }
   }
 
   Future<PrivacyLevel> getPrivacyLevel() async {
@@ -264,10 +303,33 @@ class AuthService {
         .doc(uid)
         .set({'privacyLevel': level.value}, SetOptions(merge: true));
   }
+
+  /// Generates a unique username of the form `word_abc123`.
+  /// Retries up to 10 times before throwing. Collision probability is
+  /// negligible given ~1.7 billion possible combinations.
+  Future<String> _generateUniqueUsername() async {
+    final random = Random();
+    for (int attempt = 0; attempt < 10; attempt++) {
+      final word = _usernameWords[random.nextInt(_usernameWords.length)];
+      final letters = String.fromCharCodes(
+        List.generate(3, (_) => 97 + random.nextInt(26)),
+      );
+      final digits = List.generate(3, (_) => random.nextInt(10)).join();
+      final candidate = '${word}_$letters$digits';
+      final doc =
+          await _firestore.collection('usernames').doc(candidate).get();
+      if (!doc.exists) return candidate;
+    }
+    throw Exception('Could not generate a unique username after 10 attempts');
+  }
 }
 
 class UsernameUnavailableException implements Exception {
   const UsernameUnavailableException();
+}
+
+class UsernameBlankException implements Exception {
+  const UsernameBlankException();
 }
 
 class ProfanityException implements Exception {
@@ -320,3 +382,25 @@ bool _containsProfanity(String username) {
   }
   return false;
 }
+
+// ─── Username word pool ────────────────────────────────────────────────────────
+// Used to generate auto-assigned usernames in the form  word_abc123.
+// ~100 words × 26³ × 10³ ≈ 1.7 billion unique combinations.
+const List<String> _usernameWords = [
+  // Adjectives
+  'amber', 'ancient', 'bright', 'calm', 'clever', 'cosmic', 'crimson',
+  'crystal', 'daring', 'distant', 'emerald', 'golden', 'graceful', 'grand',
+  'hidden', 'humble', 'icy', 'jade', 'kickflip', 'lavender', 'lofty', 'lucky',
+  'lunar', 'misty', 'noble', 'onyx', 'pizza', 'puzzle', 'quiet', 'radiant',
+  'rising', 'royal', 'ruby', 'rustic', 'sacred', 'serene', 'silver', 'sleek',
+  'solar', 'steady', 'still', 'swift', 'teal', 'tender', 'vivid', 'warm',
+  'wild', 'wise',
+  // Book & nature nouns
+  'atlas', 'author', 'chapter', 'codex', 'fable', 'folio', 'forest', 'grove',
+  'harbor', 'haven', 'horizon', 'journal', 'lantern', 'leaf', 'lore',
+  'meadow', 'memoir', 'mosaic', 'mountain', 'myth', 'narrative', 'novel',
+  'oak', 'orbit', 'page', 'parchment', 'path', 'peak', 'prose', 'quest',
+  'raven', 'realm', 'ridge', 'river', 'scroll', 'shore', 'solstice', 'spine',
+  'tale', 'tide', 'tome', 'vale', 'verse', 'vista', 'voyage', 'wave',
+  'willow', 'wren',
+];

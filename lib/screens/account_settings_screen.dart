@@ -720,7 +720,7 @@ class _UsernameEditSheetState extends State<_UsernameEditSheet> {
   }
 
   String? _validate(String value) {
-    if (value.isEmpty) return null; // blank = clear username, allowed
+    if (value.isEmpty) return 'Username cannot be blank.';
     if (value.contains('/')) return 'Username cannot contain a forward slash (/).';
     if (value.length > _maxLength) return 'Username cannot exceed $_maxLength characters.';
     return null;
@@ -776,7 +776,7 @@ class _UsernameEditSheetState extends State<_UsernameEditSheet> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text('Leave blank to remove your username.'),
+          const Text('Pick something that represents you. Must be unique.'),
           const SizedBox(height: 20),
           TextField(
             controller: _ctrl,
