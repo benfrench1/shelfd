@@ -81,7 +81,7 @@ Note on _if_ limits were reached:
 
 ---
 
-#### Mobile data usage
+#### Mobile data usage
 
 When testing previosuly it was found that the book covers would not load and present a `TLS_HandshakeError`. The apps functionality was uneffected but the error in not loading the bok cover caused issues with the screens structure. This was addressed with a placeholder book cover icon to use in the event the book cover cannot be reached (mobile data or no internet/wifi).
 The most common cause on mobile data is carrier-level SSL inspection.
