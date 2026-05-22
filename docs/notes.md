@@ -99,3 +99,4 @@ Both screens call a single Firestore .get() with no .limit() — all documents a
 Both use ListView.builder, which is lazy — it only builds the widgets currently visible on screen, regardless of how many items are in the list. Scrolling through 200 items is just as smooth as scrolling through 20.
 
 - The current implementation is perfectly appropriate for a personal reading app. Pagination would only be a consideration if users logged thousands of books (very unlikely).
+

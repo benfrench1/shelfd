@@ -4,6 +4,7 @@ class Book {
   final int year;
   final int? coverId;
   final int? editionCount;
+  final String? workId;
 
   Book({
     required this.title,
@@ -11,6 +12,7 @@ class Book {
     required this.year,
     this.coverId,
     this.editionCount,
+    this.workId,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
@@ -25,6 +27,7 @@ class Book {
       year: json['year'] ?? json['first_publish_year'] ?? 0,
       coverId: json['coverId'] ?? json['cover_i'],
       editionCount: json['editionCount'] ?? json['edition_count'],
+      workId: json['workId'] ?? (json['key'] as String?)?.replaceFirst('/works/', ''),
     );
   }
 
@@ -35,6 +38,7 @@ class Book {
       'year': year,
       'coverId': coverId,
       'editionCount': editionCount,
+      'workId': workId,
     };
   }
 }
