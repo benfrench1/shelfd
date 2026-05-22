@@ -1,5 +1,8 @@
 ## Note on Global reviews retrieved from Google Books API
 
+> [!NOTE]
+> The API Key was in the code hardcoded. The security risk was minimal due to the restricted access this key has (e.g. Books API). However it was decided to proceed with Open Library for ratings (used for book search as well)
+
 It was discovered that the Global review feature present when reviewing was showing "Global rating not available" and this was due to the following rate limiting error (produced when running locally).
 
 ```
@@ -18,5 +21,3 @@ This API key:
 - Provides quota of 1,000 requests/day
 - Is free, no billing associated with Books API
 
-> [!NOTE]
-> The API Key is present in the code hardcoded. The security risk should be minimal due to the restricted access this key has (e.g. Books API) 

@@ -6,6 +6,7 @@ class BookReview {
   final double rating;
   final String comment;
   final int? coverId;
+  final String? workId;
   final DateTime dateAdded;
   final bool isFavourite;
   final BookFormat format;
@@ -18,6 +19,7 @@ class BookReview {
     required this.rating,
     required this.comment,
     this.coverId,
+    this.workId,
     DateTime? dateAdded,
     this.isFavourite = false,
     this.format = BookFormat.physical,
@@ -31,6 +33,7 @@ class BookReview {
       'rating': rating,
       'comment': comment,
       'coverId': coverId,
+      'workId': workId,
       'dateAdded': dateAdded.toIso8601String(),
       'isFavourite': isFavourite,
       'format': format.name,
@@ -46,6 +49,7 @@ class BookReview {
       rating: (json['rating'] as num).toDouble(),
       comment: json['comment'],
       coverId: json['coverId'],
+      workId: json['workId'],
       dateAdded: DateTime.parse(json['dateAdded']),
       isFavourite: json['isFavourite'] ?? false,
       format: _parseFormat(json['format']),
@@ -77,6 +81,7 @@ class BookReview {
       rating: rating ?? this.rating,
       comment: comment ?? this.comment,
       coverId: coverId,
+      workId: workId,
       dateAdded: dateAdded,
       isFavourite: isFavourite ?? this.isFavourite,
       format: format ?? this.format,
