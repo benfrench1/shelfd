@@ -1,4 +1,4 @@
-First Experiment Notes (Flutter)
+## First Experiment Notes (Flutter)
 - Installed via brew `brew install --cask flutter`
 - First command ran this to create basic files:
 
