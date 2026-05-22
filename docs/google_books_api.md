@@ -17,3 +17,6 @@ This API key:
 - Stored within the project "shelfd"
 - Provides quota of 1,000 requests/day
 - Is free, no billing associated with Books API
+
+> [!NOTE]
+> The API Key is present in the code hardcoded. The security risk should be minimal due to the restricted access this key has (e.g. Books API) 
