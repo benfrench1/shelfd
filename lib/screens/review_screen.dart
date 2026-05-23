@@ -35,6 +35,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
   bool _globalRatingLoading = true;
   double? _globalRating;
   int? _globalRatingsCount;
+  String? _globalRatingSource;
 
 
   BookFormat _format = BookFormat.physical;
@@ -62,39 +63,28 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   Future<void> _fetchGlobalRating() async {
-    // Try two queries: exact intitle/inauthor first, then plain title+author
-    final queries = [
-      'intitle:${widget.book.title} inauthor:${widget.book.author}',
-      '${widget.book.title} ${widget.book.author}',
-    ];
+    if (widget.book.workId == null) {
+      if (mounted) setState(() => _globalRatingLoading = false);
+      return;
+    }
     try {
-      for (final q in queries) {
-        final url = Uri.https('www.googleapis.com', '/books/v1/volumes', {
-          'q': q,
-          'maxResults': '5',
-        });
-        final response = await http.get(url);
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          final items = data['items'] as List?;
-          if (items != null && items.isNotEmpty) {
-            // Pick the first item that has a rating
-            for (final item in items) {
-              final info = item['volumeInfo'] as Map<String, dynamic>;
-              final r = (info['averageRating'] as num?)?.toDouble();
-              final c = info['ratingsCount'] as int?;
-              if (r != null) {
-                if (mounted) {
-                  setState(() {
-                    _globalRating = r;
-                    _globalRatingsCount = c;
-                    _globalRatingLoading = false;
-                  });
-                }
-                return;
-              }
-            }
-          }
+      final url = Uri.https(
+        'openlibrary.org',
+        '/works/${widget.book.workId}/ratings.json',
+      );
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final d = jsonDecode(response.body);
+        final avg = (d['summary']?['average'] as num?)?.toDouble();
+        final cnt = d['summary']?['count'] as int?;
+        if (avg != null && mounted) {
+          setState(() {
+            _globalRating = avg;
+            _globalRatingsCount = cnt;
+            _globalRatingSource = 'Open Library';
+            _globalRatingLoading = false;
+          });
+          return;
         }
       }
     } catch (_) {
@@ -139,6 +129,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
       rating: rating,
       comment: commentController.text,
       coverId: widget.book.coverId,
+      workId: widget.book.workId,
       isFavourite: isFavourite,
       format: _format,
       dateAdded: widget.existingReview?.dateAdded,
@@ -419,7 +410,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     )
                   : Text(
                       _globalRating != null
-                          ? '${_globalRating!.toStringAsFixed(1)} / 5 ★  |  ${_formatCount(_globalRatingsCount ?? 0)} ratings  (Google Books)'
+                          ? '${_globalRating!.toStringAsFixed(1)} / 5 ★  |  ${_formatCount(_globalRatingsCount ?? 0)} ratings  ($_globalRatingSource)'
                           : 'Global rating not available',
                       style: const TextStyle(
                         fontSize: 13,

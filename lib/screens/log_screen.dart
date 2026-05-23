@@ -235,6 +235,7 @@ class _LogScreenState extends State<LogScreen> {
       author: review.author,
       year: review.year,
       coverId: review.coverId,
+      workId: review.workId,
     );
 
     Navigator.push(

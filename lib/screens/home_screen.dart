@@ -80,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     showModalBottomSheet(
       context: context,
-      builder: (context) => SafeArea(
+      builder: (sheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -92,11 +92,12 @@ class _HomeScreenState extends State<HomeScreen> {
               title: Text(isAlready ? 'Remove from Future Reads' : 'Add to Future Reads'),
               subtitle: Text(book.title, maxLines: 1, overflow: TextOverflow.ellipsis),
               onTap: () async {
-                Navigator.pop(context);
+                final messenger = ScaffoldMessenger.of(context);
+                Navigator.pop(sheetContext);
                 if (isAlready) {
                   await WishlistService.removeBook(book);
                   if (mounted) {
-                    ScaffoldMessenger.of(context)
+                    messenger
                       ..hideCurrentSnackBar()
                       ..showSnackBar(
                         SnackBar(
@@ -118,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 } else {
                   await WishlistService.addBook(book);
                   if (mounted) {
-                    ScaffoldMessenger.of(context)
+                    messenger
                       ..hideCurrentSnackBar()
                       ..showSnackBar(
                         SnackBar(
