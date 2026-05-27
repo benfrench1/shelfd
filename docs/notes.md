@@ -66,7 +66,7 @@ Firestore Spark (free) plan limits:
 | Storage | 1 GiB | Negligible — thousands of users wouldn't dent this |
 | Document reads | 50,000/day | Moderate — see below |
 | Document writes | 20,000/day | Very low — only on send/accept/decline |
-| Document deletes | 10,000/day | Very low — only on cancel/unfriend |
+| Document deletes | 20,000/day | Very low — only on cancel/unfriend |
 
 Note on _if_ limits were reached:
 "The way the Spark plan operates is that if your project exceeds the no-cost quota limit in a calendar month for any specific product (like Firestore reads), your project's usage of that particular product will be shut off for the remainder of that month."

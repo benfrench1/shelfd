@@ -1,9 +1,78 @@
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/book.dart';
 import '../models/book_review.dart';
 
 class BookService {
+  static const _legacyRecsCacheKey = 'recommendations_cache';
+  static const _legacyRecsCacheTimeKey = 'recommendations_cache_time';
+  static const _cacheValidityDays = 1;
+
+  static String _recsCacheKey(String uid) => 'recommendations_cache_$uid';
+  static String _recsCacheTimeKey(String uid) => 'recommendations_cache_time_$uid';
+
+  static String? _currentUid() => FirebaseAuth.instance.currentUser?.uid;
+
+  /// Checks if cached recommendations are still valid (within 24 hours)
+  static Future<bool> _isCacheValid(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedTime = prefs.getInt(_recsCacheTimeKey(uid));
+    if (cachedTime == null) return false;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final cacheAgeMs = now - cachedTime;
+    final validityMs = _cacheValidityDays * 24 * 60 * 60 * 1000;
+
+    return cacheAgeMs < validityMs;
+  }
+
+  /// Retrieves cached recommendations if available
+  static Future<List<Book>?> _getCachedRecommendations(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString(_recsCacheKey(uid));
+    if (cached == null) return null;
+
+    try {
+      final List<dynamic> jsonList = jsonDecode(cached);
+      return jsonList.map((json) => Book.fromJson(json)).toList();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Stores recommendations to cache
+  static Future<void> _setCachedRecommendations(
+    String uid,
+    List<Book> recommendations,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = recommendations.map((book) => book.toJson()).toList();
+    await prefs.setString(_recsCacheKey(uid), jsonEncode(jsonList));
+    await prefs.setInt(
+      _recsCacheTimeKey(uid),
+      DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  /// Cleans up old global cache keys from earlier versions.
+  static Future<void> _clearLegacyRecommendationsCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_legacyRecsCacheKey);
+    await prefs.remove(_legacyRecsCacheTimeKey);
+  }
+
+  /// Clears cached recommendations (call when new review is added)
+  static Future<void> clearRecommendationsCache() async {
+    final uid = _currentUid();
+    if (uid == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_recsCacheKey(uid));
+    await prefs.remove(_recsCacheTimeKey(uid));
+  }
+
   static Future<List<Book>>
       searchBooks(String query) async {
     if (query.isEmpty) {
@@ -117,4 +186,33 @@ class BookService {
 
     return results.take(5).toList();
   }
+
+  /// Returns cached recommendations if fresh, otherwise fetches fresh and caches.
+  /// Call this instead of getRecommendations() for better performance.
+  static Future<List<Book>> getRecommendationsWithCache(
+    List<BookReview> reviews,
+  ) async {
+    final uid = _currentUid();
+    if (uid == null) {
+      return getRecommendations(reviews);
+    }
+
+    // One-time cleanup of old unscoped cache keys.
+    await _clearLegacyRecommendationsCache();
+
+    // Return cached if valid
+    final isValid = await _isCacheValid(uid);
+    if (isValid) {
+      final cached = await _getCachedRecommendations(uid);
+      if (cached != null) {
+        return cached;
+      }
+    }
+
+    // Fetch fresh and cache
+    final fresh = await getRecommendations(reviews);
+    await _setCachedRecommendations(uid, fresh);
+    return fresh;
+  }
 }
+
