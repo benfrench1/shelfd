@@ -47,6 +47,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
+    // Load quote independently so it is not blocked by recommendation refresh.
+    final quoteFuture = QuoteService.getQuoteOfTheDay();
+    quoteFuture.then((quote) {
+      if (!mounted) return;
+      setState(() {
+        _quote = quote;
+        _loadingQuote = false;
+      });
+    });
+
     final all = await StorageService.getReviews();
     final sorted = List<BookReview>.from(all)
       ..sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
@@ -55,15 +65,12 @@ class _HomeScreenState extends State<HomeScreen> {
       _recentReviews = sorted.take(5).toList();
     });
 
-    final recs = await BookService.getRecommendations(all);
-    final quote = await QuoteService.getQuoteOfTheDay();
+    final recs = await BookService.getRecommendationsWithCache(all);
 
     if (mounted) {
       setState(() {
         _recommendations = recs;
         _loadingRecs = false;
-        _quote = quote;
-        _loadingQuote = false;
       });
     }
   }

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/book_review.dart';
 import 'wishlist_service.dart';
+import 'book_service.dart';
 
 class StorageService {
   static CollectionReference<Map<String, dynamic>> _reviewsCollection() {
@@ -14,6 +15,8 @@ class StorageService {
 
   static Future<void> saveReview(BookReview review) async {
     await _reviewsCollection().add(review.toJson());
+    // Clear recommendations cache since reading log changed
+    await BookService.clearRecommendationsCache();
     try {
       await WishlistService.removeByTitleAuthor(review.title, review.author);
     } catch (_) {
@@ -28,6 +31,8 @@ class StorageService {
     if (index < snapshot.docs.length) {
       await snapshot.docs[index].reference.update(review.toJson());
     }
+    // Clear recommendations cache since reading log changed
+    await BookService.clearRecommendationsCache();
     try {
       await WishlistService.removeByTitleAuthor(review.title, review.author);
     } catch (_) {
@@ -71,6 +76,8 @@ class StorageService {
     for (final doc in snapshot.docs) {
       await doc.reference.delete();
     }
+    // Clear recommendations cache since reading log changed
+    await BookService.clearRecommendationsCache();
   }
 }
 
