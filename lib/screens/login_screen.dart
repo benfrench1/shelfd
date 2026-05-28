@@ -22,6 +22,54 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _forgotHovered = false;
   String? _errorMessage;
 
+  Future<String?> _promptForLinkingPassword(String email) async {
+    final passwordController = TextEditingController();
+    final password = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Link Google to your account'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'An account already exists for $email. Enter your password once so we can connect Google sign-in to the same account.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                prefixIcon: Icon(Icons.lock_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepOrange,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.of(dialogContext).pop(passwordController.text);
+            },
+            child: const Text('Link Account'),
+          ),
+        ],
+      ),
+    );
+    passwordController.dispose();
+    return password?.trim().isEmpty == true ? null : password?.trim();
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -40,6 +88,47 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result == null && mounted) {
         // user cancelled — nothing to do
         setState(() => _isLoading = false);
+      }
+    } on GoogleAccountLinkRequiredException catch (e) {
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+
+      final email = e.email ?? _emailController.text.trim();
+      if (email.isEmpty) {
+        setState(() {
+          _errorMessage =
+              'This Google account is already linked to another sign-in method.';
+        });
+        return;
+      }
+
+      final password = await _promptForLinkingPassword(email);
+      if (password == null || !mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      try {
+        await _authService.signInWithEmailAndPasswordForLinking(email, password);
+        await _authService.linkGoogleCredentialToSignedInUser(
+          e.pendingCredential,
+        );
+        await _authService.ensureUserProfile();
+      } on FirebaseAuthException catch (linkError) {
+        if (!mounted) return;
+        setState(() {
+          _errorMessage = _friendlyError(linkError.code);
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _errorMessage = 'Could not link Google sign-in. Please try again.';
+        });
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -191,6 +280,10 @@ class _LoginScreenState extends State<LoginScreen> {
         return 'This account has been disabled.';
       case 'too-many-requests':
         return 'Too many attempts. Please try again later.';
+      case 'account-exists-with-different-credential':
+        return 'That email already uses a different sign-in method. Please link it with your password first.';
+      case 'credential-already-in-use':
+        return 'That Google account is already linked to another profile.';
       case 'email-not-verified':
         return 'Please verify your email before signing in. Check your inbox for the verification link.';
       default:
