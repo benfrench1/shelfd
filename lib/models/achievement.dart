@@ -19,5 +19,5 @@ const List<Achievement> kAchievements = [
   (threshold: 200,  label: '200th Book Completed',                                                    emoji: '🎖️', hidden: false),
   (threshold: 250,  label: '250th Book Completed',                                                    emoji: '🏆', hidden: false),
   (threshold: 500,  label: '500th Book Completed',                                                    emoji: '⭐', hidden: false),
-  (threshold: 1000, label: '1000th Books Completed.\nYou achieved it all!\nYou are a LEGEND!',        emoji: '👑', hidden: false),
+  (threshold: 1000, label: '1000 Books Completed.\nYou achieved it all!\nYou are a LEGEND!',        emoji: '👑', hidden: false),
 ];
