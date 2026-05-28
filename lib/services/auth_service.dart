@@ -26,6 +26,17 @@ class AuthService {
     return credential;
   }
 
+  Future<UserCredential> signInWithEmailAndPasswordForLinking(
+    String email,
+    String password,
+  ) async {
+    final credential = await _auth.signInWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+    return credential;
+  }
+
   Future<void> register(String email, String password) async {
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email.trim(),
@@ -229,7 +240,30 @@ class AuthService {
       idToken: googleAuth.idToken,
     );
 
-    return await _auth.signInWithCredential(credential);
+    try {
+      return await _auth.signInWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'account-exists-with-different-credential' ||
+          e.code == 'email-already-in-use' ||
+          e.code == 'credential-already-in-use') {
+        throw GoogleAccountLinkRequiredException(
+          email: e.email,
+          pendingCredential: credential,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<UserCredential> linkGoogleCredentialToSignedInUser(
+    AuthCredential pendingCredential,
+  ) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(code: 'no-user');
+    }
+
+    return await user.linkWithCredential(pendingCredential);
   }
 
   /// Ensures the user's Firestore document has a createdAt timestamp,
@@ -322,6 +356,16 @@ class AuthService {
     }
     throw Exception('Could not generate a unique username after 10 attempts');
   }
+}
+
+class GoogleAccountLinkRequiredException implements Exception {
+  final String? email;
+  final AuthCredential pendingCredential;
+
+  const GoogleAccountLinkRequiredException({
+    required this.email,
+    required this.pendingCredential,
+  });
 }
 
 class UsernameUnavailableException implements Exception {
