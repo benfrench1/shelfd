@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/book.dart';
 import '../models/book_review.dart';
+import '../models/literary_quiz_question.dart';
 import '../services/auth_service.dart';
 import '../services/storage_service.dart';
 import '../services/book_service.dart';
+import '../services/literary_quiz_service.dart';
 import '../services/quote_service.dart';
 import '../services/wishlist_service.dart';
 
@@ -30,6 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _avatarAsset;
   final _authService = AuthService();
   StreamSubscription<String?>? _avatarSub;
+  int _quoteTapCount = 0;
+  DateTime? _firstQuoteTapTime;
 
   @override
   void initState() {
@@ -154,6 +158,102 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _handleQuoteTap() async {
+    final now = DateTime.now();
+    if (_firstQuoteTapTime == null ||
+        now.difference(_firstQuoteTapTime!).inMilliseconds > 1500) {
+      _quoteTapCount = 1;
+      _firstQuoteTapTime = now;
+      return;
+    }
+
+    _quoteTapCount++;
+    if (_quoteTapCount < 5) {
+      return;
+    }
+
+    _quoteTapCount = 0;
+    _firstQuoteTapTime = null;
+
+    final alreadyDone = await LiteraryQuizService.isQuizCompletedToday();
+    if (!mounted) return;
+
+    if (alreadyDone) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text("That's the secret quiz done :)... for today"),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      return;
+    }
+
+    final shouldStart = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Secret Quiz'),
+        content: const Text(
+          'Would you like to partake in today\'s literature quiz?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('No thanks'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepOrange,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text("Let's try it!"),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldStart != true || !mounted) {
+      return;
+    }
+
+    final score = await showDialog<int>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _LiteraryQuizDialog(
+        questions: LiteraryQuizService.getQuizForToday(),
+      ),
+    );
+
+    if (score == null || !mounted) {
+      return;
+    }
+
+    await LiteraryQuizService.markQuizCompletedToday();
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Quiz Complete'),
+        content: Text('You scored $score out of 5.'),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepOrange,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Nice'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -203,6 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               const SizedBox(height: 20),
+
 
               const Text(
                 "Your Reading Dashboard",
@@ -341,35 +442,38 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 60,
                       child: Center(child: CircularProgressIndicator()),
                     )
-                  : Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xffd6d9d6),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '"${_quote!.text}"',
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              height: 1.5,
-                              fontStyle: FontStyle.italic,
+                  : GestureDetector(
+                      onTap: _handleQuoteTap,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xffd6d9d6),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '"${_quote!.text}"',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                height: 1.5,
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            "— ${_quote!.author}",
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                            const SizedBox(height: 12),
+                            Text(
+                              '— ${_quote!.author}',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
 
@@ -544,6 +648,132 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         textAlign: TextAlign.center,
       ),
+    );
+  }
+}
+
+class _LiteraryQuizDialog extends StatefulWidget {
+  final List<LiteraryQuizQuestion> questions;
+
+  const _LiteraryQuizDialog({required this.questions});
+
+  @override
+  State<_LiteraryQuizDialog> createState() => _LiteraryQuizDialogState();
+}
+
+class _LiteraryQuizDialogState extends State<_LiteraryQuizDialog> {
+  int _questionIndex = 0;
+  int _score = 0;
+  int? _selectedIndex;
+  bool _answered = false;
+
+  LiteraryQuizQuestion get _currentQuestion => widget.questions[_questionIndex];
+
+  void _answerQuestion(int index) {
+    if (_answered) return;
+
+    setState(() {
+      _selectedIndex = index;
+      _answered = true;
+      if (index == _currentQuestion.correctIndex) {
+        _score++;
+      }
+    });
+  }
+
+  void _goNext() {
+    if (_questionIndex == widget.questions.length - 1) {
+      Navigator.of(context).pop(_score);
+      return;
+    }
+
+    setState(() {
+      _questionIndex++;
+      _selectedIndex = null;
+      _answered = false;
+    });
+  }
+
+  Color? _optionColor(int index) {
+    if (!_answered) return null;
+    if (index == _currentQuestion.correctIndex) {
+      return Colors.green.shade100;
+    }
+    if (index == _selectedIndex) {
+      return Colors.red.shade100;
+    }
+    return null;
+  }
+
+  Color? _optionBorderColor(int index) {
+    if (!_answered) return Colors.grey.shade300;
+    if (index == _currentQuestion.correctIndex) {
+      return Colors.green;
+    }
+    if (index == _selectedIndex) {
+      return Colors.red;
+    }
+    return Colors.grey.shade300;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      title: Text('Literary Quiz ${_questionIndex + 1}/5'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _currentQuestion.question,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            ...List.generate(_currentQuestion.options.length, (index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => _answerQuestion(index),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _optionColor(index),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _optionBorderColor(index)!,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Text(_currentQuestion.options[index]),
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Exit Quiz'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.deepOrange,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: _answered ? _goNext : null,
+          child: Text(_questionIndex == widget.questions.length - 1 ? 'Finish' : 'Next'),
+        ),
+      ],
     );
   }
 }

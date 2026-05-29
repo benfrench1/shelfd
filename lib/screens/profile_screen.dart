@@ -1196,6 +1196,9 @@ class _AchievementMedal extends StatelessWidget {
   final String emoji;
   final bool unlocked;
 
+  static const _legendAchievementLabel =
+      '1000 Books Completed.\nYou achieved it all!\nYou are a LEGEND!';
+
   const _AchievementMedal({
     required this.label,
     required this.emoji,
@@ -1203,67 +1206,135 @@ class _AchievementMedal extends StatelessWidget {
   });
 
   void _showEnlarged(BuildContext context) {
+    final isLockedLegendAchievement =
+        !unlocked && label == _legendAchievementLabel;
+    int tapCount = 0;
+    DateTime? firstTapTime;
+    String? visibleMessage;
+
     showDialog(
       context: context,
       barrierColor: Colors.black87,
       barrierDismissible: true,
-      builder: (_) => GestureDetector(
-        onTap: () => Navigator.of(context).pop(),
-        behavior: HitTestBehavior.opaque,
-        child: Center(
-          child: GestureDetector(
-            onTap: () {}, // prevent tap on medal from closing
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 160,
-                  height: 160,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: unlocked
-                        ? const Color(0xffFFF3CD)
-                        : Colors.grey.shade200,
-                    border: Border.all(
-                      color: unlocked
-                          ? const Color(0xffD4A017)
-                          : Colors.grey.shade400,
-                      width: 5,
+      builder: (_) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          void handleMedalTap() {
+            if (!isLockedLegendAchievement) {
+              return;
+            }
+
+            final now = DateTime.now();
+            if (firstTapTime == null ||
+                now.difference(firstTapTime!).inMilliseconds > 500) {
+              tapCount = 1;
+              firstTapTime = now;
+              return;
+            }
+
+            tapCount++;
+            if (tapCount >= 2) {
+              tapCount = 0;
+              firstTapTime = null;
+              setDialogState(() => visibleMessage = 'Is this even possible?!');
+            }
+          }
+
+          return GestureDetector(
+            onTap: () => Navigator.of(dialogContext).pop(),
+            behavior: HitTestBehavior.opaque,
+            child: Center(
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: handleMedalTap,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 160,
+                          height: 160,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: unlocked
+                                ? const Color(0xffFFF3CD)
+                                : Colors.grey.shade200,
+                            border: Border.all(
+                              color: unlocked
+                                  ? const Color(0xffD4A017)
+                                  : Colors.grey.shade400,
+                              width: 5,
+                            ),
+                            boxShadow: unlocked
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(0xffD4A017)
+                                          .withOpacity(0.5),
+                                      blurRadius: 24,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ]
+                                : null,
+                          ),
+                          child: Center(
+                            child: unlocked
+                                ? Text(emoji,
+                                    style: const TextStyle(fontSize: 72))
+                                : const Icon(Icons.lock_outline,
+                                    size: 72, color: Colors.grey),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 40),
+                          child: Text(
+                            label,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color:
+                                  unlocked ? Colors.white : Colors.grey.shade400,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    boxShadow: unlocked
-                        ? [
-                            BoxShadow(
-                              color: const Color(0xffD4A017).withOpacity(0.5),
-                              blurRadius: 24,
-                              offset: const Offset(0, 4),
-                            )
-                          ]
-                        : null,
                   ),
-                  child: Center(
-                    child: unlocked
-                        ? Text(emoji, style: const TextStyle(fontSize: 72))
-                        : const Icon(Icons.lock_outline,
-                            size: 72, color: Colors.grey),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: unlocked ? Colors.white : Colors.grey.shade400,
+                  if (visibleMessage != null)
+                    Positioned(
+                      top: 180,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(dialogContext).size.width - 64,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.92),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Text(
+                            visibleMessage!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
