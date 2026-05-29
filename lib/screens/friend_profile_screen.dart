@@ -418,6 +418,27 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
   final Map<String, ({Map<String, int> counts, List<String> mine})>
       _reactions = {};
 
+  Widget _buildMonthBanner(String label) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xff6A4A2F),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xff8A6648)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+          color: Color(0xffF6EFE6),
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -686,12 +707,7 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
       padding: const EdgeInsets.all(16),
       children: [
         for (final entry in grouped.entries) ...[
-          Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 4),
-            child: Text(entry.key,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 15)),
-          ),
+          _buildMonthBanner(entry.key),
           for (final review in entry.value)
             GestureDetector(
               onLongPress: () => _addToWishlist(context, review),

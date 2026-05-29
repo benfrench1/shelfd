@@ -271,6 +271,31 @@ class _LogScreenState extends State<LogScreen> {
     return months[month - 1];
   }
 
+  Widget _buildMonthBanner(String label) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xff6A4A2F),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xff8A6648)),
+      ),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Color(0xffF6EFE6),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void showOptions(BookReview review) {
     showModalBottomSheet(
       context: context,
@@ -554,16 +579,7 @@ class _LogScreenState extends State<LogScreen> {
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  child: Text(
-                                    entry.key,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                                _buildMonthBanner(entry.key),
                                 ...entry.value.map(buildCard),
                               ],
                             );
