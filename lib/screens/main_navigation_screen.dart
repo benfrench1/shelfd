@@ -249,7 +249,7 @@ class _MainNavigationScreenState
   Widget build(BuildContext context) {
     final List<Widget> screens = [
       HomeScreen(onNavigate: onItemTapped, onSearchTapped: _navigateToSearchFocused),
-      SearchScreen(autoFocus: _searchAutoFocus),
+      SearchScreen(autoFocus: _searchAutoFocus, onNavigate: onItemTapped),
       const LogScreen(),
       const ProfileScreen(),
       const WishlistScreen(),

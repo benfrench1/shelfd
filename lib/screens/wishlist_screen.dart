@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../models/book.dart';
 import '../services/wishlist_service.dart';
 import 'review_screen.dart';
@@ -113,13 +112,10 @@ class _WishlistScreenState extends State<WishlistScreen> {
                   children: [
                     const Icon(Icons.travel_explore, size: 28),
                     const SizedBox(width: 8),
-                    Text(
-                      'Shelfd',
-                      style: GoogleFonts.fredoka(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xff5C3A1E),
-                      ),
+                    Image.asset(
+                      'assets/images/shelfd_brand_name.png',
+                      height: 18,
+                      fit: BoxFit.contain,
                     ),
                     const Expanded(
                       child: Text(

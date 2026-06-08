@@ -103,8 +103,8 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/images/shelfd_app_tile.png
+  image_path: assets/images/shelfd_logo_old.png
   remove_alpha_ios: true
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: assets/images/shelfd_app_tile.png
-  adaptive_icon_foreground_inset: 11
+  adaptive_icon_foreground: assets/images/shelfd_logo_old.png
+  adaptive_icon_foreground_inset: 13

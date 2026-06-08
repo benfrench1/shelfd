@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/auth_service.dart';
@@ -40,13 +39,10 @@ class ProfileScreen extends StatelessWidget {
                     children: [
                     const Icon(Icons.person, size: 28),
                     const SizedBox(width: 8),
-                    Text(
-                      'Shelfd',
-                      style: GoogleFonts.fredoka(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xff5C3A1E),
-                      ),
+                    Image.asset(
+                      'assets/images/shelfd_brand_name.png',
+                      height: 18,
+                      fit: BoxFit.contain,
                     ),
                     const Expanded(
                       child: Text(
