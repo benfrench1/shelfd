@@ -50,7 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             content: Text(
               'Account created! Check ${_emailController.text.trim()} for a verification link before signing in.',
             ),
-            duration: const Duration(seconds: 6),
+            duration: const Duration(seconds: 10),
           ),
         );
       }
