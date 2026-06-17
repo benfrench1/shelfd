@@ -252,7 +252,7 @@ class _MainNavigationScreenState
       SearchScreen(autoFocus: _searchAutoFocus, onNavigate: onItemTapped),
       const LogScreen(),
       const ProfileScreen(),
-      const WishlistScreen(),
+      WishlistScreen(onNavigate: onItemTapped),
     ];
 
     return Scaffold(
