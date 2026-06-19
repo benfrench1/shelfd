@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../models/book_review.dart';
 import '../models/book.dart';
 import '../models/user_profile.dart';
@@ -277,9 +276,9 @@ class _LogScreenState extends State<LogScreen> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xff6A4A2F),
+        color: Colors.deepOrange,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xff8A6648)),
+        border: Border.all(color: Colors.deepOrange.shade700),
       ),
       child: Row(
         children: [
@@ -520,13 +519,10 @@ class _LogScreenState extends State<LogScreen> {
                   children: [
                     const Icon(Icons.menu_book, size: 28),
                     const SizedBox(width: 8),
-                    Text(
-                      'Shelfd',
-                      style: GoogleFonts.fredoka(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xff5C3A1E),
-                      ),
+                    Image.asset(
+                      'assets/images/shelfd_brand_name.png',
+                      height: 18,
+                      fit: BoxFit.contain,
                     ),
                     const Expanded(
                       child: Text(

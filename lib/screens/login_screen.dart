@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
 
@@ -316,18 +315,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 73),
                   Column(
                     children: [
-                      Image.asset(
-                        'assets/images/shelfd_app_tile.png',
-                        height: 72,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Shelfd',
-                        style: GoogleFonts.fredoka(
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xff5C3A1E),
+                        Image.asset(
+                          'assets/images/shelfd_logo.png',
+                          height: 200,
+                          width: 200,
+                          fit: BoxFit.contain,
                         ),
+                      const SizedBox(height: 12),
+                      Image.asset(
+                        'assets/images/shelfd_brand_name.png',
+                        height: 40,
                       ),
                     ],
                   ),

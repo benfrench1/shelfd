@@ -50,7 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             content: Text(
               'Account created! Check ${_emailController.text.trim()} for a verification link before signing in.',
             ),
-            duration: const Duration(seconds: 6),
+            duration: const Duration(seconds: 10),
           ),
         );
       }
@@ -116,12 +116,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Column(
                     children: [
                       Image.asset(
-                        'assets/images/shelfd_app_tile.png',
-                        height: 72,
+                        'assets/images/shelfd_logo.png',
+                        height: 200,
+                        width: 200,
+                        fit: BoxFit.contain,
                       ),
                       const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
                             'Join ',
@@ -131,12 +134,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               color: const Color(0xff5C3A1E),
                             ),
                           ),
-                          Text(
-                            'Shelfd',
-                            style: GoogleFonts.fredoka(
-                              fontSize: 40,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xff5C3A1E),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Image.asset(
+                              'assets/images/shelfd_brand_name.png',
+                              height: 40,
                             ),
                           ),
                         ],

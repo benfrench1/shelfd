@@ -1,11 +1,16 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../models/book.dart';
+import '../services/auth_service.dart';
 import '../services/wishlist_service.dart';
 import 'review_screen.dart';
 
 class WishlistScreen extends StatefulWidget {
-  const WishlistScreen({super.key});
+  final Function(int) onNavigate;
+
+  const WishlistScreen({super.key, required this.onNavigate});
 
   @override
   State<WishlistScreen> createState() => _WishlistScreenState();
@@ -13,11 +18,23 @@ class WishlistScreen extends StatefulWidget {
 
 class _WishlistScreenState extends State<WishlistScreen> {
   List<Book> _wishlist = [];
+  String? _avatarAsset;
+  final _authService = AuthService();
+  StreamSubscription<String?>? _avatarSub;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _avatarSub = _authService.avatarAssetStream.listen((asset) {
+      if (mounted) setState(() => _avatarAsset = asset);
+    });
+  }
+
+  @override
+  void dispose() {
+    _avatarSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -109,26 +126,47 @@ class _WishlistScreenState extends State<WishlistScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: SizedBox(
                 height: 40,
-                child: Row(
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    const Icon(Icons.travel_explore, size: 28),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Shelfd',
-                      style: GoogleFonts.fredoka(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xff5C3A1E),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.travel_explore, size: 28),
+                        const SizedBox(width: 8),
+                        Image.asset(
+                          'assets/images/shelfd_brand_name.png',
+                          height: 18,
+                          fit: BoxFit.contain,
+                        ),
+                        const Spacer(),
+                      ],
+                    ),
+                    const Text(
+                      'Future Reads',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 19),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(22),
+                        onTap: () => widget.onNavigate(3),
+                        child: CircleAvatar(
+                          radius: 20,
+                          backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
+                          backgroundImage: _avatarAsset != null
+                              ? AssetImage(_avatarAsset!) as ImageProvider
+                              : (FirebaseAuth.instance.currentUser?.photoURL != null
+                                  ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
+                                  : null),
+                          child: _avatarAsset == null &&
+                                  FirebaseAuth.instance.currentUser?.photoURL == null
+                              ? const Icon(Icons.person, size: 20, color: Color(0xff5C3A1E))
+                              : null,
+                        ),
                       ),
                     ),
-                    const Expanded(
-                      child: Text(
-                        'Future Reads',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 19),
-                      ),
-                    ),
-                    const SizedBox(width: 96),
                   ],
                 ),
               ),
