@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../accessibility/accessibility_labels.dart';
 import '../models/book.dart';
 import '../models/book_review.dart';
 import '../models/literary_quiz_question.dart';
@@ -275,23 +276,31 @@ class _HomeScreenState extends State<HomeScreen> {
                     'assets/images/shelfd_brand_name.png',
                     height: 36,
                     fit: BoxFit.contain,
+                    excludeFromSemantics: true,
                   ),
                   const Spacer(),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(22),
-                    onTap: () => widget.onNavigate(3),
-                    child: CircleAvatar(
-                      radius: 20,
-                      backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
-                      backgroundImage: _avatarAsset != null
-                          ? AssetImage(_avatarAsset!) as ImageProvider
-                          : (FirebaseAuth.instance.currentUser?.photoURL != null
-                              ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
-                              : null),
-                      child: _avatarAsset == null &&
-                              FirebaseAuth.instance.currentUser?.photoURL == null
-                          ? const Icon(Icons.person, size: 20, color: Color(0xff5C3A1E))
-                          : null,
+                  Semantics(
+                    button: true,
+                    label: avatarSemanticLabel(isCurrentUser: true),
+                    hint: 'Opens your profile screen',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(22),
+                      onTap: () => widget.onNavigate(3),
+                      child: ExcludeSemantics(
+                        child: CircleAvatar(
+                          radius: 20,
+                          backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
+                          backgroundImage: _avatarAsset != null
+                              ? AssetImage(_avatarAsset!) as ImageProvider
+                              : (FirebaseAuth.instance.currentUser?.photoURL != null
+                                  ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
+                                  : null),
+                          child: _avatarAsset == null &&
+                                  FirebaseAuth.instance.currentUser?.photoURL == null
+                              ? const Icon(Icons.person, size: 20, color: Color(0xff5C3A1E))
+                              : null,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -300,34 +309,44 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
 
 
-              const Text(
-                "Your Reading Dashboard",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+              Semantics(
+                header: true,
+                child: Text(
+                  "Your Reading Dashboard",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
 
               const SizedBox(height: 20),
 
               // Search bar — tapping jumps to Search tab
-              GestureDetector(
-                onTap: () {
-                  widget.onNavigate(1);
-                  widget.onSearchTapped?.call();
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const TextField(
-                    enabled: false,
-                    decoration: InputDecoration(
-                      icon: Icon(Icons.search),
-                      hintText: "Search books, authors, genres...",
-                      border: InputBorder.none,
+              Semantics(
+                button: true,
+                label: 'Open search',
+                hint: 'Search books, authors, or genres',
+                child: GestureDetector(
+                  onTap: () {
+                    widget.onNavigate(1);
+                    widget.onSearchTapped?.call();
+                  },
+                  child: ExcludeSemantics(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const TextField(
+                        enabled: false,
+                        decoration: InputDecoration(
+                          icon: Icon(Icons.search),
+                          hintText: "Search books, authors, genres...",
+                          border: InputBorder.none,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -336,11 +355,14 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 28),
 
               // ── Recently Rated ──────────────────────────────────────
-              const Text(
-                "Recently Rated",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              Semantics(
+                header: true,
+                child: Text(
+                  "Recently Rated",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
 
@@ -359,13 +381,25 @@ class _HomeScreenState extends State<HomeScreen> {
                           final review = _recentReviews[index];
                           final url = _coverUrl(review.coverId);
 
-                          return _bookCard(
-                            title: review.title,
-                            subtitle: review.author,
-                            footer:
-                                "${review.rating % 1 == 0 ? review.rating.toInt() : review.rating.toStringAsFixed(1)}/10 ⭐",
-                            coverUrl: url,
-                            isFavourite: review.isFavourite,
+                          return Semantics(
+                            container: true,
+                            label: bookSemanticLabel(
+                              title: review.title,
+                              author: review.author,
+                              year: review.year,
+                              rating: review.rating,
+                              isFavourite: review.isFavourite,
+                            ),
+                            child: ExcludeSemantics(
+                              child: _bookCard(
+                                title: review.title,
+                                subtitle: review.author,
+                                footer:
+                                    "${review.rating % 1 == 0 ? review.rating.toInt() : review.rating.toStringAsFixed(1)}/10 ⭐",
+                                coverUrl: url,
+                                isFavourite: review.isFavourite,
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -374,11 +408,14 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 28),
 
               // ── Recommended for You ────────────────────────────────
-              const Text(
-                "Recommended for You",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              Semantics(
+                header: true,
+                child: Text(
+                  "Recommended for You",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
 
@@ -403,16 +440,27 @@ class _HomeScreenState extends State<HomeScreen> {
                               final book = _recommendations[index];
                               final url = _coverUrl(book.coverId);
 
-                              return GestureDetector(
-                                onLongPress: () => _showAddToWishlist(context, book),
-                                child: _bookCard(
+                              return Semantics(
+                                container: true,
+                                label: bookSemanticLabel(
                                   title: book.title,
-                                  subtitle: book.author,
-                                  footer: book.year > 0
-                                      ? "${book.year}"
-                                      : "",
-                                  coverUrl: url,
-                                  isFavourite: false,
+                                  author: book.author,
+                                  year: book.year,
+                                ),
+                                hint: 'Long press to add this book to Future Reads',
+                                child: ExcludeSemantics(
+                                  child: GestureDetector(
+                                    onLongPress: () => _showAddToWishlist(context, book),
+                                    child: _bookCard(
+                                      title: book.title,
+                                      subtitle: book.author,
+                                      footer: book.year > 0
+                                          ? "${book.year}"
+                                          : "",
+                                      coverUrl: url,
+                                      isFavourite: false,
+                                    ),
+                                  ),
                                 ),
                               );
                             },
@@ -422,11 +470,14 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 28),
 
               // ── Quote of the Day ───────────────────────────────────
-              const Text(
-                "Quote of the Day",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              Semantics(
+                header: true,
+                child: Text(
+                  "Quote of the Day",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
 
@@ -437,37 +488,43 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 60,
                       child: Center(child: CircularProgressIndicator()),
                     )
-                  : GestureDetector(
-                      onTap: _handleQuoteTap,
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: const Color(0xffd6d9d6),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '"${_quote!.text}"',
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 15,
-                                height: 1.5,
-                                fontStyle: FontStyle.italic,
-                              ),
+                  : Semantics(
+                      container: true,
+                      label: 'Quote of the day. ${_quote!.text}. By ${_quote!.author}.',
+                      child: GestureDetector(
+                        onTap: _handleQuoteTap,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xffd6d9d6),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: ExcludeSemantics(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '"${_quote!.text}"',
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 15,
+                                    height: 1.5,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  '— ${_quote!.author}',
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 12),
-                            Text(
-                              '— ${_quote!.author}',
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
@@ -536,12 +593,13 @@ class _HomeScreenState extends State<HomeScreen> {
             Stack(
               children: [
                 coverUrl != null
-                    ? Image.network(
-                        coverUrl,
-                        height: 120,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                  ? Image.network(
+                    coverUrl,
+                    height: 120,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    excludeFromSemantics: true,
+                    errorBuilder: (_, __, ___) => Container(
                           height: 120,
                           width: double.infinity,
                           color: Colors.grey.shade200,

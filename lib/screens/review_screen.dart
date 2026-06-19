@@ -99,6 +99,48 @@ class _ReviewScreenState extends State<ReviewScreen> {
     return count.toString();
   }
 
+  String _numberToWords(int n) {
+    const ones = [
+      'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+      'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen',
+      'sixteen', 'seventeen', 'eighteen', 'nineteen'
+    ];
+    const tens = [
+      '', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy',
+      'eighty', 'ninety'
+    ];
+
+    if (n < 20) return ones[n];
+    if (n < 100) {
+      final t = n ~/ 10;
+      final u = n % 10;
+      return u == 0 ? tens[t] : '${tens[t]} ${ones[u]}';
+    }
+    if (n < 1000) {
+      final h = n ~/ 100;
+      final rest = n % 100;
+      final result = '${ones[h]} hundred';
+      if (rest == 0) return result;
+      return '$result ${_numberToWords(rest)}';
+    }
+    if (n < 1000000) {
+      final t = n ~/ 1000;
+      final rest = n % 1000;
+      final result = '${_numberToWords(t)} thousand';
+      if (rest == 0) return result;
+      return '$result ${_numberToWords(rest)}';
+    }
+    return n.toString();
+  }
+
+  String _spokenGlobalRating(double rating, int count, String source) {
+    final ratingStr = rating % 1 == 0
+        ? _numberToWords(rating.toInt())
+        : '${_numberToWords((rating * 10).round() ~/ 10)} point ${_numberToWords(((rating * 10).round() % 10))}';
+    final countStr = _numberToWords(count);
+    return '$ratingStr out of five, with $countStr ratings from $source';
+  }
+
   void _showSnack(String message, {IconData? icon}) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -322,6 +364,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
               },
             ),
           IconButton(
+            tooltip: isFavourite ? 'Remove favourite' : 'Mark as favourite',
             icon: Icon(
               isFavourite ? Icons.star : Icons.star_border,
               color: Colors.amber,
@@ -344,44 +387,51 @@ class _ReviewScreenState extends State<ReviewScreen> {
           children: [
             if (getCoverUrl(book.coverId) != null)
               Center(
-                child: GestureDetector(
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      barrierColor: Colors.black87,
-                      barrierDismissible: true,
-                      builder: (ctx) => GestureDetector(
-                        onTap: () => Navigator.of(ctx).pop(),
-                        behavior: HitTestBehavior.opaque,
-                        child: Center(
-                          child: GestureDetector(
-                            onTap: () {},
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                getCoverUrl(book.coverId)!,
-                                height: 360,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const SizedBox(
+                child: Semantics(
+                  button: true,
+                  label: 'Book cover for ${book.title}',
+                  hint: 'Opens a larger book cover image',
+                  child: GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        barrierColor: Colors.black87,
+                        barrierDismissible: true,
+                        builder: (ctx) => GestureDetector(
+                          onTap: () => Navigator.of(ctx).pop(),
+                          behavior: HitTestBehavior.opaque,
+                          child: Center(
+                            child: GestureDetector(
+                              onTap: () {},
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  getCoverUrl(book.coverId)!,
                                   height: 360,
-                                  child: Center(
-                                    child: Icon(Icons.book, size: 80, color: Colors.grey),
+                                  fit: BoxFit.contain,
+                                  semanticLabel: 'Large book cover for ${book.title}',
+                                  errorBuilder: (_, __, ___) => const SizedBox(
+                                    height: 360,
+                                    child: Center(
+                                      child: Icon(Icons.book, size: 80, color: Colors.grey),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  },
-                  child: Image.network(
-                    getCoverUrl(book.coverId)!,
-                    height: 160,
-                    errorBuilder: (_, __, ___) => const SizedBox(
+                      );
+                    },
+                    child: Image.network(
+                      getCoverUrl(book.coverId)!,
                       height: 160,
-                      child: Center(
-                        child: Icon(Icons.book, size: 60, color: Colors.grey),
+                      semanticLabel: 'Book cover for ${book.title}',
+                      errorBuilder: (_, __, ___) => const SizedBox(
+                        height: 160,
+                        child: Center(
+                          child: Icon(Icons.book, size: 60, color: Colors.grey),
+                        ),
                       ),
                     ),
                   ),
@@ -390,11 +440,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
             const SizedBox(height: 16),
 
-            Text(
-              book.title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+            Semantics(
+              header: true,
+              child: Text(
+                book.title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
 
@@ -408,15 +461,27 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       width: 14,
                       child: CircularProgressIndicator(strokeWidth: 1.5),
                     )
-                  : Text(
-                      _globalRating != null
-                          ? '${_globalRating!.toStringAsFixed(1)} / 5 ★  |  ${_formatCount(_globalRatingsCount ?? 0)} ratings  ($_globalRatingSource)'
-                          : 'Global rating not available',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.black54,
-                      ),
-                    ),
+                  : _globalRating != null
+                      ? Semantics(
+                          label: _spokenGlobalRating(
+                              _globalRating!, _globalRatingsCount ?? 0, _globalRatingSource ?? 'Open Library'),
+                          child: ExcludeSemantics(
+                            child: Text(
+                              '${_globalRating!.toStringAsFixed(1)} / 5 ★  |  ${_formatCount(_globalRatingsCount ?? 0)} ratings  ($_globalRatingSource)',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          'Global rating not available',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.black54,
+                          ),
+                        ),
             ),
 
             const SizedBox(height: 24),

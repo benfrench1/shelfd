@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../accessibility/accessibility_labels.dart';
 import '../models/book.dart';
 import '../services/auth_service.dart';
 import '../services/wishlist_service.dart';
@@ -138,32 +139,43 @@ class _WishlistScreenState extends State<WishlistScreen> {
                           'assets/images/shelfd_brand_name.png',
                           height: 18,
                           fit: BoxFit.contain,
+                          excludeFromSemantics: true,
                         ),
                         const Spacer(),
                       ],
                     ),
-                    const Text(
-                      'Future Reads',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 19),
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        'Future Reads',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 19),
+                      ),
                     ),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(22),
-                        onTap: () => widget.onNavigate(3),
-                        child: CircleAvatar(
-                          radius: 20,
-                          backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
-                          backgroundImage: _avatarAsset != null
-                              ? AssetImage(_avatarAsset!) as ImageProvider
-                              : (FirebaseAuth.instance.currentUser?.photoURL != null
-                                  ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
-                                  : null),
-                          child: _avatarAsset == null &&
-                                  FirebaseAuth.instance.currentUser?.photoURL == null
-                              ? const Icon(Icons.person, size: 20, color: Color(0xff5C3A1E))
-                              : null,
+                      child: Semantics(
+                        button: true,
+                        label: avatarSemanticLabel(isCurrentUser: true),
+                        hint: 'Opens your profile screen',
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(22),
+                          onTap: () => widget.onNavigate(3),
+                          child: ExcludeSemantics(
+                            child: CircleAvatar(
+                              radius: 20,
+                              backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
+                              backgroundImage: _avatarAsset != null
+                                  ? AssetImage(_avatarAsset!) as ImageProvider
+                                  : (FirebaseAuth.instance.currentUser?.photoURL != null
+                                      ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
+                                      : null),
+                              child: _avatarAsset == null &&
+                                      FirebaseAuth.instance.currentUser?.photoURL == null
+                                  ? const Icon(Icons.person, size: 20, color: Color(0xff5C3A1E))
+                                  : null,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -217,47 +229,57 @@ class _WishlistScreenState extends State<WishlistScreen> {
                 final book = _wishlist[index];
                 final coverUrl = _coverUrl(book.coverId);
 
-                return GestureDetector(
-                  onLongPress: () => _showOptions(book),
-                  child: Card(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(12),
-                      leading: coverUrl != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: Image.network(
-                                coverUrl,
-                                width: 46,
-                                height: 64,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
+                return Semantics(
+                  container: true,
+                  label: bookSemanticLabel(
+                    title: book.title,
+                    author: book.author,
+                    year: book.year,
+                  ),
+                  hint: 'Long press for Future Reads options',
+                  child: GestureDetector(
+                    onLongPress: () => _showOptions(book),
+                    child: Card(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(12),
+                        leading: coverUrl != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Image.network(
+                                  coverUrl,
                                   width: 46,
                                   height: 64,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade200,
-                                    borderRadius: BorderRadius.circular(6),
+                                  fit: BoxFit.cover,
+                                  excludeFromSemantics: true,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 46,
+                                    height: 64,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Icon(Icons.book, color: Colors.grey),
                                   ),
-                                  child: const Icon(Icons.book, color: Colors.grey),
                                 ),
+                              )
+                            : Container(
+                                width: 46,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(Icons.book, color: Colors.grey),
                               ),
-                            )
-                          : Container(
-                              width: 46,
-                              height: 64,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Icon(Icons.book, color: Colors.grey),
-                            ),
-                      title: Text(
-                        book.title,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        "${book.author}${book.year > 0 ? '  ·  ${book.year}' : ''}",
-                        style: const TextStyle(fontSize: 13),
+                        title: Text(
+                          book.title,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          "${book.author}${book.year > 0 ? '  ·  ${book.year}' : ''}",
+                          style: const TextStyle(fontSize: 13),
+                        ),
                       ),
                     ),
                   ),

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../accessibility/accessibility_labels.dart';
 import '../models/user_profile.dart';
 import '../services/badge_refresh_notifier.dart';
 import '../services/friend_service.dart';
@@ -450,18 +451,24 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
-  CircleAvatar _buildAvatarCircle(UserProfile? profile) {
+  Widget _buildAvatarCircle(UserProfile? profile, {String? semanticLabel}) {
     final ImageProvider? img = profile?.avatarAsset != null
         ? AssetImage(profile!.avatarAsset!) as ImageProvider
         : profile?.photoUrl != null
             ? NetworkImage(profile!.photoUrl!)
             : null;
-    return CircleAvatar(
-      backgroundColor: const Color(0xff5C3A1E),
-      backgroundImage: img,
-      child: img == null
-          ? const Icon(Icons.person, color: Colors.white)
-          : null,
+    return Semantics(
+      image: true,
+      label: semanticLabel ?? avatarSemanticLabel(),
+      child: ExcludeSemantics(
+        child: CircleAvatar(
+          backgroundColor: const Color(0xff5C3A1E),
+          backgroundImage: img,
+          child: img == null
+              ? const Icon(Icons.person, color: Colors.white)
+              : null,
+        ),
+      ),
     );
   }
 
@@ -554,6 +561,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                   strokeWidth: 2))
                           : IconButton(
                               icon: const Icon(Icons.search),
+                              tooltip: 'Search for friend',
                               onPressed: _search,
                               style: IconButton.styleFrom(
                                 backgroundColor: Colors.deepOrange,
@@ -647,7 +655,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
               return Card(
                 child: ListTile(
                   leading: _buildAvatarCircle(
-                      _profileCache[req.otherUid(_myUid)]),
+                    _profileCache[req.otherUid(_myUid)],
+                    semanticLabel: avatarSemanticLabel(
+                      name: _profileCache[req.otherUid(_myUid)]?.displayName ??
+                          req.otherUsername(_myUid),
+                    ),
+                  ),
                   title: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -687,7 +700,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
             ..._pendingSent.map((req) => Card(
                   child: ListTile(
                     leading: _buildAvatarCircle(
-                        _profileCache[req.otherUid(_myUid)]),
+                      _profileCache[req.otherUid(_myUid)],
+                      semanticLabel: avatarSemanticLabel(
+                        name: _profileCache[req.otherUid(_myUid)]?.displayName ??
+                            req.otherUsername(_myUid),
+                      ),
+                    ),
                     title: Text(
                         _profileCache[req.otherUid(_myUid)]?.displayName ?? req.otherUsername(_myUid) ?? 'Shelfd User'),
                     subtitle: const Text('Request pending…'),
@@ -779,45 +797,55 @@ class _SearchResultTile extends StatelessWidget {
       _ => '🌐 Public profile',
     };
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: const Color(0xff5C3A1E),
-            backgroundImage: profile.avatarAsset != null
-                ? AssetImage(profile.avatarAsset!) as ImageProvider
-                : profile.photoUrl != null
-                    ? NetworkImage(profile.photoUrl!)
-                    : null,
-            child: profile.avatarAsset == null && profile.photoUrl == null
-                ? const Icon(Icons.person, color: Colors.white)
-                : null,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(profile.displayName,
-                    style:
-                        const TextStyle(fontWeight: FontWeight.bold)),
-                Text(privacyIcon,
-                    style: const TextStyle(
-                        fontSize: 12, color: Colors.grey)),
-              ],
+    return Semantics(
+      container: true,
+      label: '${profile.displayName}. $privacyIcon.',
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Semantics(
+              image: true,
+              label: avatarSemanticLabel(name: profile.displayName),
+              child: ExcludeSemantics(
+                child: CircleAvatar(
+                  backgroundColor: const Color(0xff5C3A1E),
+                  backgroundImage: profile.avatarAsset != null
+                      ? AssetImage(profile.avatarAsset!) as ImageProvider
+                      : profile.photoUrl != null
+                          ? NetworkImage(profile.photoUrl!)
+                          : null,
+                  child: profile.avatarAsset == null && profile.photoUrl == null
+                      ? const Icon(Icons.person, color: Colors.white)
+                      : null,
+                ),
+              ),
             ),
-          ),
-          TextButton(
-              onPressed: onView, child: const Text('View')),
-          const SizedBox(width: 4),
-          action,
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(profile.displayName,
+                      style:
+                          const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(privacyIcon,
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+            ),
+            TextButton(
+                onPressed: onView, child: const Text('View')),
+            const SizedBox(width: 4),
+            action,
+          ],
+        ),
       ),
     );
   }
