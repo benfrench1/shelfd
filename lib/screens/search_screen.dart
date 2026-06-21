@@ -612,7 +612,7 @@ class _WishlistButtonState extends State<_WishlistButton> {
                 size: 18,
               ),
               const SizedBox(width: 8),
-              Text(_wishlisted ? 'Added to Future Reads' : 'Removed from Future Reads'),
+              Flexible(child: Text(_wishlisted ? 'Added to Future Reads' : 'Removed from Future Reads')),
             ],
           ),
           duration: const Duration(seconds: 2),

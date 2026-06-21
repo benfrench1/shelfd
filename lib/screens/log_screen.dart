@@ -607,6 +607,8 @@ class _LogScreenState extends State<LogScreen> {
   @override
   Widget build(BuildContext context) {
     final grouped = groupReviews();
+    final textScale = MediaQuery.of(context).textScaleFactor;
+    final useCompactSort = textScale > 1.2;
 
     return Scaffold(
       backgroundColor: const Color(0xffF5F2ED),
@@ -617,7 +619,7 @@ class _LogScreenState extends State<LogScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: SizedBox(
-                height: 40,
+                height: useCompactSort ? 52 : 40,
                 child: Row(
                   children: [
                     const Icon(Icons.menu_book, size: 28),
@@ -630,29 +632,49 @@ class _LogScreenState extends State<LogScreen> {
                     const Expanded(
                       child: Text(
                         'Reading Log',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 19,
                         ),
                       ),
                     ),
-                    DropdownButton<String>(
-                      value: sortOption,
-                      isDense: true,
-                      underline: const SizedBox(),
-                      onChanged: (value) {
-                        setState(() {
-                          sortOption = value!;
-                          sortReviews();
-                        });
-                      },
-                      items: const [
-                        DropdownMenuItem(value: 'date', child: Text('Sort: Date')),
-                        DropdownMenuItem(value: 'alphabetical', child: Text('Sort: A–Z')),
-                        DropdownMenuItem(value: 'rating', child: Text('Sort: Rating')),
-                        DropdownMenuItem(value: 'author', child: Text('Sort: Author')),
-                      ],
-                    ),
+                    if (useCompactSort)
+                      PopupMenuButton<String>(
+                        tooltip: 'Sort reviews',
+                        icon: const Icon(Icons.sort),
+                        onSelected: (value) {
+                          setState(() {
+                            sortOption = value;
+                            sortReviews();
+                          });
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(value: 'date', child: Text('Sort: Date')),
+                          PopupMenuItem(value: 'alphabetical', child: Text('Sort: A–Z')),
+                          PopupMenuItem(value: 'rating', child: Text('Sort: Rating')),
+                          PopupMenuItem(value: 'author', child: Text('Sort: Author')),
+                        ],
+                      )
+                    else
+                      DropdownButton<String>(
+                        value: sortOption,
+                        isDense: true,
+                        underline: const SizedBox(),
+                        onChanged: (value) {
+                          setState(() {
+                            sortOption = value!;
+                            sortReviews();
+                          });
+                        },
+                        items: const [
+                          DropdownMenuItem(value: 'date', child: Text('Sort: Date')),
+                          DropdownMenuItem(value: 'alphabetical', child: Text('Sort: A–Z')),
+                          DropdownMenuItem(value: 'rating', child: Text('Sort: Rating')),
+                          DropdownMenuItem(value: 'author', child: Text('Sort: Author')),
+                        ],
+                      ),
                   ],
                 ),
               ),

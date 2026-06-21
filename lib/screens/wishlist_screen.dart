@@ -117,6 +117,9 @@ class _WishlistScreenState extends State<WishlistScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final textScale = MediaQuery.of(context).textScaleFactor;
+    final isLargeText = textScale > 1.3;
+
     return Scaffold(
       backgroundColor: const Color(0xffF5F2ED),
       body: SafeArea(
@@ -126,7 +129,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: SizedBox(
-                height: 40,
+                height: isLargeText ? 52 : 40,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
@@ -146,10 +149,15 @@ class _WishlistScreenState extends State<WishlistScreen> {
                     ),
                     Semantics(
                       header: true,
-                      child: Text(
-                        'Future Reads',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 19),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 110),
+                        child: Text(
+                          'Future Reads',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 19),
+                        ),
                       ),
                     ),
                     Align(

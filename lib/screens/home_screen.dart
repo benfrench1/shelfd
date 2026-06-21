@@ -117,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Icon(Icons.bookmark_remove, color: Colors.white, size: 18),
                               SizedBox(width: 8),
-                              Text('Removed from Future Reads'),
+                              Flexible(child: Text('Removed from Future Reads')),
                             ],
                           ),
                           duration: const Duration(seconds: 2),
@@ -139,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Icon(Icons.bookmark_added, color: Colors.white, size: 18),
                               SizedBox(width: 8),
-                              Text('Added to Future Reads'),
+                              Flexible(child: Text('Added to Future Reads')),
                             ],
                           ),
                           duration: const Duration(seconds: 2),
@@ -195,6 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final shouldStart = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text('Secret Quiz'),
         content: const Text(
           'Would you like to partake in today\'s literature quiz?',
@@ -238,6 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text('Quiz Complete'),
         content: Text('You scored $score out of 5.'),
         actions: [
@@ -370,13 +372,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
               _recentReviews.isEmpty
                   ? _emptyCard("Nothing recently rated.")
-                  : SizedBox(
-                      height: 240,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _recentReviews.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(width: 12),
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        final textScale = MediaQuery.of(context).textScaleFactor;
+                        final containerHeight = textScale > 1.5 ? 300.0 : (textScale > 1.2 ? 260.0 : 240.0);
+                        return SizedBox(
+                          height: containerHeight,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _recentReviews.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(width: 12),
                         itemBuilder: (context, index) {
                           final review = _recentReviews[index];
                           final url = _coverUrl(review.coverId);
@@ -403,6 +409,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
+                    );
+                      },
                     ),
 
               const SizedBox(height: 28),
@@ -429,13 +437,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   : _recommendations.isEmpty
                       ? _emptyCard(
                           "No recommendations yet — log some books first :)")
-                      : SizedBox(
-                          height: 240,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _recommendations.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(width: 12),
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            final textScale = MediaQuery.of(context).textScaleFactor;
+                            final containerHeight = textScale > 1.5 ? 300.0 : (textScale > 1.2 ? 260.0 : 240.0);
+                            return SizedBox(
+                              height: containerHeight,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _recommendations.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 12),
                             itemBuilder: (context, index) {
                               final book = _recommendations[index];
                               final url = _coverUrl(book.coverId);
@@ -465,6 +477,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               );
                             },
                           ),
+                        );
+                          },
                         ),
 
               const SizedBox(height: 28),
@@ -569,119 +583,136 @@ class _HomeScreenState extends State<HomeScreen> {
     required String? coverUrl,
     required bool isFavourite,
   }) {
-    return Container(
-      width: 150,
-      decoration: BoxDecoration(
-        color: isFavourite
-            ? Colors.amber.withOpacity(0.15)
-            : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Cover image
-            Stack(
-              children: [
-                coverUrl != null
-                  ? Image.network(
-                    coverUrl,
-                    height: 120,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    excludeFromSemantics: true,
-                    errorBuilder: (_, __, ___) => Container(
-                          height: 120,
-                          width: double.infinity,
-                          color: Colors.grey.shade200,
-                          child: const Center(
-                            child: Icon(Icons.book, size: 40, color: Colors.grey),
-                          ),
-                        ),
-                      )
-                    : Container(
-                        height: 120,
-                        width: double.infinity,
-                        color: Colors.grey.shade200,
-                        child: const Center(
-                          child: Icon(
-                            Icons.book,
-                            size: 40,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                if (isFavourite)
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        color: Colors.amber,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Icon(
-                        Icons.star,
-                        size: 14,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Adjust card width and text wrapping based on text scale factor
+        final textScale = MediaQuery.of(context).textScaleFactor;
+        final isLargeText = textScale > 1.5;
+        final cardWidth = isLargeText ? 240.0 : (textScale > 1.2 ? 190.0 : 150.0);
+        final titleMaxLines = isLargeText ? 2 : 2;
+        final subtitleMaxLines = 1;
+        final coverHeight = isLargeText ? 100.0 : 120.0;
 
-            // Details
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        // Reduce padding at high text scales to save space
+        final padding = isLargeText ? 6.0 : 10.0;
+
+        return Container(
+          width: cardWidth,
+          decoration: BoxDecoration(
+            color: isFavourite
+                ? Colors.amber.withOpacity(0.15)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Cover image
+                Stack(
                   children: [
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Colors.black54,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (footer.isNotEmpty)
-                      Text(
-                        footer,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                    coverUrl != null
+                      ? Image.network(
+                        coverUrl,
+                        height: coverHeight,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        excludeFromSemantics: true,
+                        errorBuilder: (_, __, ___) => Container(
+                              height: coverHeight,
+                              width: double.infinity,
+                              color: Colors.grey.shade200,
+                              child: const Center(
+                                child: Icon(Icons.book, size: 40, color: Colors.grey),
+                              ),
+                            ),
+                          )
+                        : Container(
+                            height: coverHeight,
+                            width: double.infinity,
+                            color: Colors.grey.shade200,
+                            child: const Center(
+                              child: Icon(
+                                Icons.book,
+                                size: 40,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                    if (isFavourite)
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: Colors.amber,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(
+                            Icons.star,
+                            size: 14,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                   ],
                 ),
-              ),
+
+                // Details
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.all(padding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: titleMaxLines,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: subtitleMaxLines,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (footer.isNotEmpty)
+                          Text(
+                            footer,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -771,46 +802,53 @@ class _LiteraryQuizDialogState extends State<_LiteraryQuizDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final maxContentHeight = MediaQuery.of(context).size.height * 0.55;
+
     return AlertDialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       title: Text('Literary Quiz ${_questionIndex + 1}/5'),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _currentQuestion.question,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 16),
-            ...List.generate(_currentQuestion.options.length, (index) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => _answerQuestion(index),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _optionColor(index),
+      content: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxContentHeight),
+        child: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _currentQuestion.question,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 16),
+                ...List.generate(_currentQuestion.options.length, (index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: InkWell(
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _optionBorderColor(index)!,
-                        width: 1.5,
+                      onTap: () => _answerQuestion(index),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _optionColor(index),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _optionBorderColor(index)!,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Text(_currentQuestion.options[index]),
                       ),
                     ),
-                    child: Text(_currentQuestion.options[index]),
-                  ),
-                ),
-              );
-            }),
-          ],
+                  );
+                }),
+              ],
+            ),
+          ),
         ),
       ),
       actions: [

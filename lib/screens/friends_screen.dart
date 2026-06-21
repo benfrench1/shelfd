@@ -662,9 +662,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     ),
                   ),
                   title: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisSize: MainAxisSize.max,
                     children: [
-                      Text(_profileCache[req.otherUid(_myUid)]?.displayName ?? req.otherUsername(_myUid) ?? 'Shelfd User'),
+                      Expanded(
+                        child: Text(
+                          _profileCache[req.otherUid(_myUid)]?.displayName ?? req.otherUsername(_myUid) ?? 'Shelfd User',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       if (isNew) ...[
                         const SizedBox(width: 6),
                         Container(
@@ -707,7 +713,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       ),
                     ),
                     title: Text(
-                        _profileCache[req.otherUid(_myUid)]?.displayName ?? req.otherUsername(_myUid) ?? 'Shelfd User'),
+                      _profileCache[req.otherUid(_myUid)]?.displayName ?? req.otherUsername(_myUid) ?? 'Shelfd User',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
                     subtitle: const Text('Request pending…'),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,

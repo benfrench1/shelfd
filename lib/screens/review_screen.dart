@@ -150,7 +150,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (icon != null) ...[Icon(icon, color: Colors.white, size: 18), const SizedBox(width: 8)],
-              Text(message),
+              Flexible(child: Text(message)),
             ],
           ),
           duration: const Duration(seconds: 2),
