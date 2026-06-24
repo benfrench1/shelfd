@@ -340,103 +340,175 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               itemCount: localPending.length,
                               itemBuilder: (_, i) {
                                 final req = localPending[i];
-                                return ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: _buildAvatarCircle(
-                                    _profileCache[req.otherUid(_myUid)]),
-                                  title: Text(_profileCache[req.otherUid(_myUid)]?.displayName ?? req.otherUsername(_myUid) ??
-                                      'Shelfd User'),
-                                  subtitle:
-                                      const Text('Wants to be your friend'),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      ElevatedButton(
-                                        onPressed: () async {
-                                          // Remove immediately from the local
-                                          // list so the row disappears at once.
-                                          setSheetState(() => localPending
-                                              .removeWhere(
-                                                  (r) => r.id == req.id));
-                                          if (mounted &&
-                                              localPending.isEmpty) {
-                                            Navigator.of(context).pop();
-                                          }
-                                          await _acceptRequest(req);
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.green,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 8),
-                                          visualDensity: VisualDensity.compact,
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8)),
-                                        ),
-                                        child: const Text('Accept'),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      OutlinedButton(
-                                        onPressed: () async {
-                                          final confirmed =
-                                              await showDialog<bool>(
-                                            context: context,
-                                            builder: (ctx) => AlertDialog(
-                                              title: const Text(
-                                                  'Decline Request'),
-                                              content:
-                                                  const Text('Are you sure?'),
-                                              actions: [
-                                                TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                            ctx, false),
-                                                    child: const Text(
-                                                        'Cancel')),
-                                                TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                            ctx, true),
-                                                    style: TextButton.styleFrom(
-                                                        foregroundColor:
-                                                            Colors.red),
-                                                    child: const Text(
-                                                        'Confirm')),
-                                              ],
-                                            ),
-                                          );
-                                          if (confirmed == true) {
-                                            setSheetState(() => localPending
-                                                .removeWhere(
-                                                    (r) => r.id == req.id));
-                                            if (mounted &&
-                                                localPending.isEmpty) {
-                                              Navigator.of(context).pop();
-                                            }
-                                            await FriendService
-                                                .deleteRequest(req.id);
-                                          }
-                                        },
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: Colors.red,
-                                          side: const BorderSide(
-                                              color: Colors.red),
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 8),
-                                          visualDensity: VisualDensity.compact,
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8)),
-                                        ),
-                                        child: const Text('Decline'),
-                                      ),
-                                    ],
-                                  ),
+                                return InkWell(
                                   onTap: () {
                                     Navigator.of(context).pop();
                                     _viewProfile(req.otherUid(_myUid));
                                   },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 6),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        _buildAvatarCircle(
+                                            _profileCache[
+                                                req.otherUid(_myUid)]),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                _profileCache[req.otherUid(
+                                                            _myUid)]
+                                                        ?.displayName ??
+                                                    req.otherUsername(
+                                                            _myUid) ??
+                                                    'Shelfd User',
+                                                style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              const Text(
+                                                'Wants to be your friend',
+                                                style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.grey),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Wrap(
+                                                spacing: 8,
+                                                runSpacing: 4,
+                                                children: [
+                                                  ElevatedButton(
+                                                    onPressed: () async {
+                                                      // Remove immediately from
+                                                      // the local list so the
+                                                      // row disappears at once.
+                                                      setSheetState(() =>
+                                                          localPending
+                                                              .removeWhere(
+                                                                  (r) =>
+                                                                      r.id ==
+                                                                      req.id));
+                                                      if (mounted &&
+                                                          localPending
+                                                              .isEmpty) {
+                                                        Navigator.of(context)
+                                                            .pop();
+                                                      }
+                                                      await _acceptRequest(
+                                                          req);
+                                                    },
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      backgroundColor:
+                                                          Colors.green,
+                                                      foregroundColor:
+                                                          Colors.white,
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 12,
+                                                          vertical: 8),
+                                                      visualDensity:
+                                                          VisualDensity.compact,
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8)),
+                                                    ),
+                                                    child:
+                                                        const Text('Accept'),
+                                                  ),
+                                                  OutlinedButton(
+                                                    onPressed: () async {
+                                                      final confirmed =
+                                                          await showDialog<
+                                                              bool>(
+                                                        context: context,
+                                                        builder: (ctx) =>
+                                                            AlertDialog(
+                                                          title: const Text(
+                                                              'Decline Request'),
+                                                          content: const Text(
+                                                              'Are you sure?'),
+                                                          actions: [
+                                                            TextButton(
+                                                                onPressed: () =>
+                                                                    Navigator.pop(
+                                                                        ctx,
+                                                                        false),
+                                                                child: const Text(
+                                                                    'Cancel')),
+                                                            TextButton(
+                                                                onPressed: () =>
+                                                                    Navigator.pop(
+                                                                        ctx,
+                                                                        true),
+                                                                style: TextButton
+                                                                    .styleFrom(
+                                                                        foregroundColor:
+                                                                            Colors.red),
+                                                                child: const Text(
+                                                                    'Confirm')),
+                                                          ],
+                                                        ),
+                                                      );
+                                                      if (confirmed == true) {
+                                                        setSheetState(() =>
+                                                            localPending
+                                                                .removeWhere(
+                                                                    (r) =>
+                                                                        r.id ==
+                                                                        req.id));
+                                                        if (mounted &&
+                                                            localPending
+                                                                .isEmpty) {
+                                                          Navigator.of(context)
+                                                              .pop();
+                                                        }
+                                                        await FriendService
+                                                            .deleteRequest(
+                                                                req.id);
+                                                      }
+                                                    },
+                                                    style: OutlinedButton
+                                                        .styleFrom(
+                                                      foregroundColor:
+                                                          Colors.red,
+                                                      side: const BorderSide(
+                                                          color: Colors.red),
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 12,
+                                                          vertical: 8),
+                                                      visualDensity:
+                                                          VisualDensity.compact,
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8)),
+                                                    ),
+                                                    child:
+                                                        const Text('Decline'),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 );
                               },
                             ),
@@ -704,35 +776,67 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             ..._pendingSent.map((req) => Card(
-                  child: ListTile(
-                    leading: _buildAvatarCircle(
-                      _profileCache[req.otherUid(_myUid)],
-                      semanticLabel: avatarSemanticLabel(
-                        name: _profileCache[req.otherUid(_myUid)]?.displayName ??
-                            req.otherUsername(_myUid),
+                  child: InkWell(
+                    onTap: () => _viewProfile(req.otherUid(_myUid)),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          _buildAvatarCircle(
+                            _profileCache[req.otherUid(_myUid)],
+                            semanticLabel: avatarSemanticLabel(
+                              name: _profileCache[req.otherUid(_myUid)]
+                                      ?.displayName ??
+                                  req.otherUsername(_myUid),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _profileCache[req.otherUid(_myUid)]
+                                          ?.displayName ??
+                                      req.otherUsername(_myUid) ??
+                                      'Shelfd User',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w500),
+                                ),
+                                const Text(
+                                  'Request pending…',
+                                  style: TextStyle(
+                                      fontSize: 13, color: Colors.grey),
+                                ),
+                                Wrap(
+                                  spacing: 4,
+                                  runSpacing: 0,
+                                  children: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          _viewProfile(req.otherUid(_myUid)),
+                                      child: const Text('View'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => _confirmDelete(
+                                          req, 'Cancel Request'),
+                                      style: TextButton.styleFrom(
+                                          foregroundColor: Colors.red),
+                                      child: const Text('Cancel'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    title: Text(
-                      _profileCache[req.otherUid(_myUid)]?.displayName ?? req.otherUsername(_myUid) ?? 'Shelfd User',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                    subtitle: const Text('Request pending…'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextButton(
-                          onPressed: () =>
-                              _viewProfile(req.otherUid(_myUid)),
-                          child: const Text('View'),
-                        ),
-                        TextButton(
-                          onPressed: () =>
-                              _confirmDelete(req, 'Cancel Request'),
-                          style: TextButton.styleFrom(
-                              foregroundColor: Colors.red),
-                          child: const Text('Cancel'),
-                        ),
-                      ],
                     ),
                   ),
                 )),
@@ -816,6 +920,7 @@ class _SearchResultTile extends StatelessWidget {
         padding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Semantics(
               image: true,
@@ -838,6 +943,7 @@ class _SearchResultTile extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(profile.displayName,
                       style:
@@ -845,13 +951,18 @@ class _SearchResultTile extends StatelessWidget {
                   Text(privacyIcon,
                       style: const TextStyle(
                           fontSize: 12, color: Colors.grey)),
+                  Wrap(
+                    spacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      TextButton(
+                          onPressed: onView, child: const Text('View')),
+                      action,
+                    ],
+                  ),
                 ],
               ),
             ),
-            TextButton(
-                onPressed: onView, child: const Text('View')),
-            const SizedBox(width: 4),
-            action,
           ],
         ),
       ),

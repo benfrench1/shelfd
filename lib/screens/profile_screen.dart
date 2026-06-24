@@ -174,8 +174,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
     BadgeRefreshNotifier.addListener(_refreshSeenIds);
     final myUid = FirebaseAuth.instance.currentUser?.uid;
     if (myUid != null) {
-      _activitySub = ActivityStreamService.unseenCountStream(myUid)
-          .listen((count) {
+      _activitySub = ActivityStreamService.unseenCountStream(myUid).listen((count) {
         if (mounted) setState(() => _activityCount = count);
       });
     }
@@ -275,11 +274,15 @@ class _UserProfileTabState extends State<_UserProfileTab> {
             child: Container(
               margin: const EdgeInsets.all(32),
               padding: const EdgeInsets.fromLTRB(28, 24, 28, 20),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height - 80,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Column(
+              child: SingleChildScrollView(
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
@@ -330,6 +333,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                     style: TextStyle(fontSize: 11, color: Colors.grey),
                   ),
                 ],
+              ),
               ),
             ),
           ),
@@ -467,6 +471,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -478,66 +483,83 @@ class _UserProfileTabState extends State<_UserProfileTab> {
         expand: false,
         builder: (_, scrollController) => Padding(
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final textScale = MediaQuery.textScalerOf(context).scale(1);
+              final minAvatarExtent = (textScale > 1.2 || constraints.maxWidth < 360)
+                  ? 96.0
+                  : 80.0;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Choose an avatar',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  OverflowBar(
+                    alignment: MainAxisAlignment.spaceBetween,
+                    overflowAlignment: OverflowBarAlignment.end,
+                    overflowDirection: VerticalDirection.down,
+                    spacing: 12,
+                    overflowSpacing: 8,
+                    children: [
+                      const Text(
+                        'Choose an avatar',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          Navigator.of(sheetContext).pop();
+                          if (pendingAvatar != null && pendingAvatar != _avatarAsset) {
+                            await _authService.saveAvatarAsset(pendingAvatar!);
+                            if (mounted) {
+                              setState(() => _avatarAsset = pendingAvatar!);
+                            }
+                          }
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.green,
+                          textStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        child: const Text('Done'),
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: () async {
-                      Navigator.of(sheetContext).pop();
-                      if (pendingAvatar != null && pendingAvatar != _avatarAsset) {
-                        await _authService.saveAvatarAsset(pendingAvatar!);
-                        if (mounted) setState(() => _avatarAsset = pendingAvatar!);
-                      }
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.green,
-                      textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: GridView.builder(
+                      controller: scrollController,
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: minAvatarExtent,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: _avatarAssets.length,
+                      itemBuilder: (_, i) {
+                        final asset = _avatarAssets[i];
+                        final isSelected = pendingAvatar == asset;
+                        return GestureDetector(
+                          onTap: () {
+                            setSheetState(() => pendingAvatar = asset);
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: isSelected
+                                  ? Border.all(color: Colors.green, width: 5)
+                                  : Border.all(color: Colors.transparent, width: 5),
+                            ),
+                            child: CircleAvatar(
+                              backgroundImage: AssetImage(asset),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    child: const Text('Done'),
                   ),
                 ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: GridView.builder(
-                  controller: scrollController,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: _avatarAssets.length,
-                  itemBuilder: (_, i) {
-                    final asset = _avatarAssets[i];
-                    final isSelected = pendingAvatar == asset;
-                    return GestureDetector(
-                      onTap: () {
-                        setSheetState(() => pendingAvatar = asset);
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: isSelected
-                              ? Border.all(color: Colors.green, width: 5)
-                              : Border.all(color: Colors.transparent, width: 5),
-                        ),
-                        child: CircleAvatar(
-                          backgroundImage: AssetImage(asset),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ),
         ),
@@ -653,6 +675,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                     child: ExcludeSemantics(
                       child: Icon(
                         Icons.qr_code_2,
+                        size: MediaQuery.textScalerOf(context).scale(24),
                         color: _friendCode != null
                             ? const Color(0xff5C3A1E)
                             : Colors.grey.shade300,

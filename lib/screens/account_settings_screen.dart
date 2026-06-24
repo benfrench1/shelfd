@@ -139,12 +139,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   void _showPrivacySheet() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) {
         return SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
+            child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -203,6 +205,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   ),
               ],
             ),
+          ),
           ),
         );
       },
