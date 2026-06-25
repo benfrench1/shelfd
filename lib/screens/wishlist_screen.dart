@@ -213,8 +213,9 @@ class _WishlistScreenState extends State<WishlistScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       const Text(
                         "Search for books and tap ",

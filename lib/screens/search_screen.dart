@@ -263,7 +263,10 @@ class _SearchScreenState
                           ),
                         ),
                         IconButton(
-                          icon: const _BarcodeIcon(color: Color(0xff5C3A1E), size: 22),
+                          icon: _BarcodeIcon(
+                            color: const Color(0xff5C3A1E),
+                            size: MediaQuery.textScalerOf(context).scale(22),
+                          ),
                           tooltip: 'Scan ISBN barcode',
                           onPressed: _openIsbnScanner,
                         ),
@@ -300,25 +303,29 @@ class _SearchScreenState
               child: CircularProgressIndicator(),
             ),
 
-          if (_searchError != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  const Icon(Icons.wifi_off, color: Colors.grey),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _searchError!,
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
           Expanded(
-            child: ListView.builder(
+            child: _searchError != null
+                ? SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 2),
+                          child: Icon(Icons.wifi_off, color: Colors.grey),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _searchError!,
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
               itemCount: books.length,
               itemBuilder: (context, index) {
                 final book = books[index];
