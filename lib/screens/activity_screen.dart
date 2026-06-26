@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../accessibility/accessibility_labels.dart';
 import '../services/activity_stream_service.dart';
 
 class ActivityScreen extends StatefulWidget {
@@ -141,24 +142,34 @@ class _ActivityCard extends StatelessWidget {
         : photoUrl != null
             ? NetworkImage(photoUrl)
             : null;
+    final actorName = showAsPrivate
+        ? 'Private user'
+        : (username?.isNotEmpty == true ? '@$username' : 'Shelfd User');
+    final reactionSummary = emojis.isEmpty
+        ? 'No reactions'
+        : emojis.map(emojiSemanticLabel).join(', ');
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 300),
       opacity: seen ? 0.55 : 1.0,
-      child: Card(
-        color: seen ? null : const Color(0xffFFF8F2),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: seen
-              ? BorderSide.none
-              : BorderSide(
-                  color: Colors.deepOrange.withOpacity(0.25), width: 1),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      child: Semantics(
+        container: true,
+        label: '$actorName reacted to your review of $bookTitle. Reactions: $reactionSummary.${seen ? '' : ' New activity.'}',
+        child: ExcludeSemantics(
+          child: Card(
+            color: seen ? null : const Color(0xffFFF8F2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: seen
+                  ? BorderSide.none
+                  : BorderSide(
+                      color: Colors.deepOrange.withOpacity(0.25), width: 1),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               // Avatar / private icon
               if (showAsPrivate)
                 Container(
@@ -258,7 +269,9 @@ class _ActivityCard extends StatelessWidget {
                     ),
                   ),
                 ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

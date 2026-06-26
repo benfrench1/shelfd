@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../accessibility/accessibility_labels.dart';
 import '../models/book_review.dart';
 import '../models/user_profile.dart';
 import '../models/achievement.dart';
@@ -129,11 +130,32 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
           centerTitle: true,
           bottom: _accessDenied
               ? null
-              : const TabBar(
+              : TabBar(
                   tabs: [
-                    Tab(icon: Icon(Icons.person_outline)),
-                    Tab(icon: Icon(Icons.menu_book_outlined)),
-                    Tab(icon: Icon(Icons.bar_chart)),
+                    Tab(
+                      icon: Semantics(
+                        label: 'Overview tab for ${friend.displayName}',
+                        child: const ExcludeSemantics(
+                          child: Icon(Icons.person_outline),
+                        ),
+                      ),
+                    ),
+                    Tab(
+                      icon: Semantics(
+                        label: 'Reading log tab for ${friend.displayName}',
+                        child: const ExcludeSemantics(
+                          child: Icon(Icons.menu_book_outlined),
+                        ),
+                      ),
+                    ),
+                    Tab(
+                      icon: Semantics(
+                        label: 'Stats tab for ${friend.displayName}',
+                        child: const ExcludeSemantics(
+                          child: Icon(Icons.bar_chart),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
         ),
@@ -291,36 +313,57 @@ class _OverviewTab extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Avatar (read-only, tap to enlarge)
-          GestureDetector(
-            onTap: avatarImage == null
-                ? null
-                : () => showDialog(
-                      context: context,
-                      barrierColor: Colors.black87,
-                      barrierDismissible: true,
-                      builder: (_) => GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        behavior: HitTestBehavior.opaque,
-                        child: Center(
+          Semantics(
+            button: avatarImage != null,
+            label: avatarSemanticLabel(name: friend.displayName),
+            hint: avatarImage != null ? 'Opens profile picture preview' : null,
+            child: GestureDetector(
+              onTap: avatarImage == null
+                  ? null
+                  : () => showDialog(
+                        context: context,
+                        barrierColor: Colors.black87,
+                        barrierDismissible: true,
+                        builder: (_) => Semantics(
+                          container: true,
+                          label: '${friend.displayName} profile picture preview',
+                          hint: 'Double tap outside the picture to close',
                           child: GestureDetector(
-                            onTap: () {},
-                            child: CircleAvatar(
-                              radius: 140,
-                              backgroundImage: avatarImage,
+                            onTap: () => Navigator.of(context).pop(),
+                            behavior: HitTestBehavior.opaque,
+                            child: Center(
+                              child: Semantics(
+                                button: true,
+                                image: true,
+                                label:
+                                    'Enlarged profile picture for ${friend.displayName}',
+                                hint: 'Double tap to interact with the picture',
+                                child: GestureDetector(
+                                  onTap: () {},
+                                  child: ExcludeSemantics(
+                                    child: CircleAvatar(
+                                      radius: 140,
+                                      backgroundImage: avatarImage,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-            child: CircleAvatar(
-              radius: 52,
-              backgroundColor:
-                  const Color(0xff5C3A1E).withOpacity(0.15),
-              backgroundImage: avatarImage,
-              child: avatarImage == null
-                  ? const Icon(Icons.person,
-                      size: 52, color: Color(0xff5C3A1E))
-                  : null,
+              child: ExcludeSemantics(
+                child: CircleAvatar(
+                  radius: 52,
+                  backgroundColor:
+                      const Color(0xff5C3A1E).withOpacity(0.15),
+                  backgroundImage: avatarImage,
+                  child: avatarImage == null
+                      ? const Icon(Icons.person,
+                          size: 52, color: Color(0xff5C3A1E))
+                      : null,
+                ),
+              ),
             ),
           ),
 
@@ -528,33 +571,40 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
                       return Expanded(
                         child: Padding(
                           padding: EdgeInsets.only(right: isLast ? 0 : 6),
-                          child: GestureDetector(
-                            onTap: disabled
-                                ? null
-                                : () async {
-                                    await _toggleReaction(reviewId, emoji);
-                                    if (ctx.mounted) setSheet(() {});
-                                  },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? Colors.deepOrange.withOpacity(0.12)
-                                    : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: selected
-                                      ? Colors.deepOrange
-                                      : Colors.grey.shade300,
-                                  width: selected ? 2 : 1,
-                                ),
-                              ),
-                              child: Center(
-                                child: Opacity(
-                                  opacity: disabled ? 0.35 : 1.0,
-                                  child: Text(emoji,
-                                      style: const TextStyle(fontSize: 26)),
+                          child: Semantics(
+                            button: !disabled,
+                            enabled: !disabled,
+                            label: '${selected ? 'Selected' : 'Add'} ${emojiSemanticLabel(emoji)} reaction',
+                            child: GestureDetector(
+                              onTap: disabled
+                                  ? null
+                                  : () async {
+                                      await _toggleReaction(reviewId, emoji);
+                                      if (ctx.mounted) setSheet(() {});
+                                    },
+                              child: ExcludeSemantics(
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    color: selected
+                                        ? Colors.deepOrange.withOpacity(0.12)
+                                        : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: selected
+                                          ? Colors.deepOrange
+                                          : Colors.grey.shade300,
+                                      width: selected ? 2 : 1,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Opacity(
+                                      opacity: disabled ? 0.35 : 1.0,
+                                      child: Text(emoji,
+                                          style: const TextStyle(fontSize: 26)),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -572,6 +622,36 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
     );
     // Panel closed — write the final reaction state to the activity stream once.
     await _saveReactionActivity(reviewId);
+  }
+
+  String _twoDigitWords(int n) {
+    const underTwenty = [
+      'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+      'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen',
+      'sixteen', 'seventeen', 'eighteen', 'nineteen'
+    ];
+    const tens = [
+      '', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy',
+      'eighty', 'ninety'
+    ];
+    if (n < 20) return underTwenty[n];
+    final t = n ~/ 10;
+    final u = n % 10;
+    return u == 0 ? tens[t] : '${tens[t]} ${underTwenty[u]}';
+  }
+
+  String _spokenYear(int year) {
+    if (year >= 1900 && year <= 1999) {
+      final yy = year % 100;
+      return yy == 0 ? 'nineteen hundred' : 'nineteen ${_twoDigitWords(yy)}';
+    }
+    if (year >= 2000 && year <= 2099) {
+      final yy = year % 100;
+      if (yy == 0) return 'two thousand';
+      if (yy < 10) return 'two thousand ${_twoDigitWords(yy)}';
+      return 'twenty ${_twoDigitWords(yy)}';
+    }
+    return year.toString();
   }
 
   String? _coverUrl(int? id) {
@@ -637,7 +717,7 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
                             Icon(Icons.bookmark_remove,
                                 color: Colors.white, size: 18),
                             SizedBox(width: 8),
-                            Text('Removed from Future Reads'),
+                            Flexible(child: Text('Removed from Future Reads')),
                           ],
                         ),
                         duration: const Duration(seconds: 2),
@@ -659,7 +739,7 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
                             Icon(Icons.bookmark_added,
                                 color: Colors.white, size: 18),
                             SizedBox(width: 8),
-                            Text('Added to your Future Reads'),
+                            Flexible(child: Text('Added to your Future Reads')),
                           ],
                         ),
                         duration: const Duration(seconds: 2),
@@ -716,79 +796,99 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
                     ? Colors.amber.withOpacity(0.15)
                     : null,
                 margin: const EdgeInsets.symmetric(vertical: 6),
-                child: ExpansionTile(
-                  leading: SizedBox(
-                    width: 50,
-                    height: 70,
-                    child: Stack(
-                      children: [
-                        _coverUrl(review.coverId) != null
-                            ? Image.network(
-                                _coverUrl(review.coverId)!,
-                                width: 50,
-                                height: 70,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const SizedBox(
+                child: Semantics(
+                  container: true,
+                  label:
+                      '${review.title} by ${review.author}. Published in ${_spokenYear(review.year)}. Rated ${review.rating % 1 == 0 ? review.rating.toInt() : review.rating.toStringAsFixed(1)} out of 10.${review.isFavourite ? ' Marked as favourite.' : ''}',
+                  hint: 'Long press for wishlist options',
+                  child: ExpansionTile(
+                    leading: SizedBox(
+                      width: 50,
+                      height: 70,
+                      child: Stack(
+                        children: [
+                          _coverUrl(review.coverId) != null
+                              ? Image.network(
+                                  _coverUrl(review.coverId)!,
                                   width: 50,
                                   height: 70,
-                                  child: Icon(Icons.book, size: 40),
+                                  fit: BoxFit.cover,
+                                  excludeFromSemantics: true,
+                                  errorBuilder: (_, __, ___) => const SizedBox(
+                                    width: 50,
+                                    height: 70,
+                                    child: Icon(Icons.book, size: 40),
+                                  ),
+                                )
+                              : const SizedBox(
+                                  width: 50,
+                                  height: 70,
+                                  child: Icon(Icons.book, size: 40)),
+                          Positioned(
+                            bottom: 2,
+                            right: 2,
+                            child: ExcludeSemantics(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
-                              )
-                            : const SizedBox(
-                                width: 50,
-                                height: 70,
-                                child: Icon(Icons.book, size: 40)),
-                        Positioned(
-                          bottom: 2,
-                          right: 2,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(4),
+                                padding: const EdgeInsets.all(2),
+                                child: Icon(_formatIcon(review.format),
+                                    size: 14, color: Colors.white),
+                              ),
                             ),
-                            padding: const EdgeInsets.all(2),
-                            child: Icon(_formatIcon(review.format),
-                                size: 14, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                    title: Semantics(
+                      label:
+                          '${review.title}. Published in ${_spokenYear(review.year)}',
+                      child: ExcludeSemantics(
+                        child: Text('${review.title} (${review.year})',
+                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(review.author),
+                        Semantics(
+                          label:
+                              'Rated ${review.rating % 1 == 0 ? review.rating.toInt() : review.rating.toStringAsFixed(1)} out of 10',
+                          child: ExcludeSemantics(
+                            child: Text(
+                                '${review.rating % 1 == 0 ? review.rating.toInt() : review.rating.toStringAsFixed(1)}/10 ⭐'),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  title: Text('${review.title} (${review.year})',
-                      style:
-                          const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(review.author),
-                      Text(
-                          '${review.rating % 1 == 0 ? review.rating.toInt() : review.rating.toStringAsFixed(1)}/10 ⭐'),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                        child: review.comment.isNotEmpty
+                            ? _ExpandableReviewText(
+                                text: review.comment,
+                                bookTitle: '${review.title} (${review.year})',
+                              )
+                            : const Text('No review written.',
+                                style: TextStyle(
+                                    fontStyle: FontStyle.italic)),
+                      ),
+                      // Reaction row — only shown when a comment exists
+                      if (review.comment.isNotEmpty && review.id != null)
+                        _ReactionRow(
+                          counts: _reactions[review.id]?.counts ?? {},
+                          mine: _reactions[review.id]?.mine ?? [],
+                          onToggle: (emoji) =>
+                              _toggleReaction(review.id!, emoji),
+                          onPickerOpen: () =>
+                              _showEmojiPicker(context, review.id!),
+                        ),
+                      const SizedBox(height: 4),
                     ],
                   ),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-                      child: review.comment.isNotEmpty
-                          ? _ExpandableReviewText(
-                              text: review.comment,
-                              bookTitle: '${review.title} (${review.year})',
-                            )
-                          : const Text('No review written.',
-                              style: TextStyle(
-                                  fontStyle: FontStyle.italic)),
-                    ),
-                    // Reaction row — only shown when a comment exists
-                    if (review.comment.isNotEmpty && review.id != null)
-                      _ReactionRow(
-                        counts: _reactions[review.id]?.counts ?? {},
-                        mine: _reactions[review.id]?.mine ?? [],
-                        onToggle: (emoji) =>
-                            _toggleReaction(review.id!, emoji),
-                        onPickerOpen: () =>
-                            _showEmojiPicker(context, review.id!),
-                      ),
-                    const SizedBox(height: 4),
-                  ],
                 ),
               ),
             ),
@@ -878,44 +978,62 @@ class _ExpandableReviewTextState extends State<_ExpandableReviewText> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (overflows)
-            ShaderMask(
-              shaderCallback: (bounds) => const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.black, Colors.black, Colors.transparent],
-                stops: [0.0, _fadeStart, 1.0],
-              ).createShader(bounds),
-              blendMode: BlendMode.dstIn,
-              child: Text(
-                widget.text,
-                maxLines: _maxLines,
-                overflow: TextOverflow.clip,
-                style: const TextStyle(fontSize: 14, height: 1.55),
+            Semantics(
+              container: true,
+              label: 'Review for ${widget.bookTitle}. ${widget.text}',
+              child: ExcludeSemantics(
+                child: ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black, Colors.black, Colors.transparent],
+                    stops: [0.0, _fadeStart, 1.0],
+                  ).createShader(bounds),
+                  blendMode: BlendMode.dstIn,
+                  child: Text(
+                    widget.text,
+                    maxLines: _maxLines,
+                    overflow: TextOverflow.clip,
+                    style: const TextStyle(fontSize: 14, height: 1.55),
+                  ),
+                ),
               ),
             )
           else
-            Text(
-              widget.text,
-              style: const TextStyle(fontSize: 14, height: 1.55),
+            Semantics(
+              container: true,
+              label: 'Review for ${widget.bookTitle}. ${widget.text}',
+              child: ExcludeSemantics(
+                child: Text(
+                  widget.text,
+                  style: const TextStyle(fontSize: 14, height: 1.55),
+                ),
+              ),
             ),
           if (overflows) ...[
             const SizedBox(height: 6),
-            GestureDetector(
-              onTap: _showFullReview,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                      color: Colors.deepOrange, width: 1.2),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'Read all',
-                  style: TextStyle(
-                    color: Colors.deepOrange,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
+            Semantics(
+              button: true,
+              label: 'Read full review for ${widget.bookTitle}',
+              child: GestureDetector(
+                onTap: _showFullReview,
+                child: ExcludeSemantics(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: Colors.deepOrange, width: 1.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'Read all',
+                      style: TextStyle(
+                        color: Colors.deepOrange,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -956,60 +1074,72 @@ class _ReactionRow extends StatelessWidget {
         children: [
           ...activeEmojis.map((emoji) {
             final isMine = mine.contains(emoji);
-            return GestureDetector(
-              onTap: () => onToggle(emoji),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isMine
-                      ? Colors.orange.shade50
-                      : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color:
-                        isMine ? Colors.deepOrange : Colors.grey.shade300,
-                    width: isMine ? 2 : 1,
+            return Semantics(
+              button: true,
+              label: '${isMine ? 'Selected' : ''} ${emojiSemanticLabel(emoji)} reaction, ${counts[emoji]}',
+              child: GestureDetector(
+                onTap: () => onToggle(emoji),
+                child: ExcludeSemantics(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isMine
+                          ? Colors.orange.shade50
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color:
+                            isMine ? Colors.deepOrange : Colors.grey.shade300,
+                        width: isMine ? 2 : 1,
+                      ),
+                    ),
+                    child: Text('$emoji ${counts[emoji]}',
+                        style: const TextStyle(fontSize: 14)),
                   ),
                 ),
-                child: Text('$emoji ${counts[emoji]}',
-                    style: const TextStyle(fontSize: 14)),
               ),
             );
           }),
           // "Add reaction" button
-          GestureDetector(
-            onTap: onPickerOpen,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade500),
-              ),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Icon(Icons.sentiment_satisfied_outlined,
-                        size: 18, color: Colors.grey.shade700),
-                    Positioned(
-                      right: -2,
-                      top: -2,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          shape: BoxShape.circle,
+          Semantics(
+            button: true,
+            label: 'Add reaction',
+            child: GestureDetector(
+              onTap: onPickerOpen,
+              child: ExcludeSemantics(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.grey.shade500),
+                  ),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(Icons.sentiment_satisfied_outlined,
+                            size: 18, color: Colors.grey.shade700),
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.add,
+                                size: 11, color: Colors.grey.shade700),
+                          ),
                         ),
-                        child: Icon(Icons.add,
-                            size: 11, color: Colors.grey.shade700),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -1293,63 +1423,71 @@ class _ReadOnlyMedal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showEnlarged(context),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: unlocked
-                  ? const Color(0xffFFF3CD)
-                  : Colors.grey.shade200,
-              border: Border.all(
-                color: unlocked
-                    ? const Color(0xffD4A017)
-                    : Colors.grey.shade400,
-                width: 2.5,
+    return Semantics(
+      button: true,
+      label:
+          '${unlocked ? 'Unlocked' : 'Locked'} achievement. ${emojiSemanticLabel(emoji)}. $label',
+      hint: 'Opens achievement details',
+      child: GestureDetector(
+        onTap: () => _showEnlarged(context),
+        child: ExcludeSemantics(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: unlocked
+                      ? const Color(0xffFFF3CD)
+                      : Colors.grey.shade200,
+                  border: Border.all(
+                    color: unlocked
+                        ? const Color(0xffD4A017)
+                        : Colors.grey.shade400,
+                    width: 2.5,
+                  ),
+                  boxShadow: unlocked
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xffD4A017).withOpacity(0.35),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          )
+                        ]
+                      : null,
+                ),
+                child: Center(
+                  child: unlocked
+                      ? Text(emoji,
+                          style: const TextStyle(fontSize: 28))
+                      : Icon(Icons.lock_outline,
+                          size: 28, color: Colors.grey),
+                ),
               ),
-              boxShadow: unlocked
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xffD4A017).withOpacity(0.35),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      )
-                    ]
-                  : null,
-            ),
-            child: Center(
-              child: unlocked
-                  ? Text(emoji,
-                      style: const TextStyle(fontSize: 28))
-                  : Icon(Icons.lock_outline,
-                      size: 28, color: Colors.grey),
-            ),
-          ),
-          const SizedBox(height: 6),
-          SizedBox(
-            width: 72,
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10,
-                color: unlocked
-                    ? const Color(0xff5C3A1E)
-                    : Colors.grey,
-                fontWeight: unlocked
-                    ? FontWeight.w600
-                    : FontWeight.normal,
+              const SizedBox(height: 6),
+              SizedBox(
+                width: 72,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: unlocked
+                        ? const Color(0xff5C3A1E)
+                        : Colors.grey,
+                    fontWeight: unlocked
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

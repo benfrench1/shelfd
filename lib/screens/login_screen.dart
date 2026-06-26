@@ -302,6 +302,7 @@ class _LoginScreenState extends State<LoginScreen> {
           Image.asset(
             'assets/images/shelf_wallpaper_2.png',
             fit: BoxFit.cover,
+            excludeFromSemantics: true,
           ),
           SafeArea(
             child: Center(
@@ -320,22 +321,27 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 200,
                           width: 200,
                           fit: BoxFit.contain,
+                          excludeFromSemantics: true,
                         ),
                       const SizedBox(height: 12),
                       Image.asset(
                         'assets/images/shelfd_brand_name.png',
                         height: 40,
+                        excludeFromSemantics: true,
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'Sign in to your account',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.bold,
-                        ),
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      'Sign in to your account',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
                   ),
                   const SizedBox(height: 41),
                   TextFormField(
@@ -410,6 +416,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderSide: const BorderSide(color: Colors.red, width: 1.5),
                       ),
                       suffixIcon: IconButton(
+                        tooltip: _obscurePassword ? 'Show password' : 'Hide password',
                         icon: Icon(
                           _obscurePassword
                               ? Icons.visibility_outlined
@@ -482,6 +489,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         'assets/images/g_google_logo.png',
                         height: 20,
                         width: 20,
+                        excludeFromSemantics: true,
                       ),
                       label: const Text(
                         'Sign in with Google',
@@ -490,8 +498,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
                         "Don't have an account? ",
@@ -517,24 +526,31 @@ class _LoginScreenState extends State<LoginScreen> {
                       onEnter: (_) => setState(() => _forgotHovered = true),
                       onExit: (_) => setState(() => _forgotHovered = false),
                       cursor: SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: _showForgotPasswordDialog,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _forgotHovered
-                                ? Colors.blue.shade200.withOpacity(0.55)
-                                : Colors.blue.shade100.withOpacity(0.35),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text(
-                            'Forgot password?',
-                            style: TextStyle(
-                              color: Colors.black87,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                      child: Semantics(
+                        button: true,
+                        label: 'Forgot password',
+                        hint: 'Opens password reset options',
+                        child: GestureDetector(
+                          onTap: _showForgotPasswordDialog,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _forgotHovered
+                                  ? Colors.blue.shade200.withOpacity(0.55)
+                                  : Colors.blue.shade100.withOpacity(0.35),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const ExcludeSemantics(
+                              child: Text(
+                                'Forgot password?',
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ),
                           ),
                         ),

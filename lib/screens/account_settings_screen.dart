@@ -139,12 +139,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   void _showPrivacySheet() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) {
         return SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
+            child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -203,6 +205,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   ),
               ],
             ),
+          ),
           ),
         );
       },
@@ -297,7 +300,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             Card(
               child: ListTile(
                 leading: Image.asset('assets/images/g_google_logo_account_settings.png',
-                    height: 20, width: 20),
+                  height: 20, width: 20, excludeFromSemantics: true),
                 title: const Text('Signed in with Google'),
                 subtitle: const Text(
                     'Password changes are managed via your Google account.',
@@ -325,6 +328,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               ),
               trailing: IconButton(
                 icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Edit username',
                 onPressed: _showEditUsernameSheet,
               ),
             ),
@@ -487,6 +491,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
                 labelText: 'Current password',
                 prefixIcon: const Icon(Icons.lock_outlined),
                 suffixIcon: IconButton(
+                  tooltip: _obscureCurrent ? 'Show current password' : 'Hide current password',
                   icon: Icon(_obscureCurrent
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined),
@@ -506,6 +511,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
                 labelText: 'New password',
                 prefixIcon: const Icon(Icons.lock_outlined),
                 suffixIcon: IconButton(
+                  tooltip: _obscureNew ? 'Show new password' : 'Hide new password',
                   icon: Icon(_obscureNew
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined),
@@ -529,6 +535,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
                 labelText: 'Confirm new password',
                 prefixIcon: const Icon(Icons.lock_outlined),
                 suffixIcon: IconButton(
+                  tooltip: _obscureConfirm ? 'Show confirm password' : 'Hide confirm password',
                   icon: Icon(_obscureConfirm
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined),
@@ -649,6 +656,7 @@ class _PasswordConfirmSheetState extends State<_PasswordConfirmSheet> {
               labelText: 'Password',
               prefixIcon: const Icon(Icons.lock_outlined),
               suffixIcon: IconButton(
+                tooltip: _obscure ? 'Show password' : 'Hide password',
                 icon: Icon(_obscure
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined),

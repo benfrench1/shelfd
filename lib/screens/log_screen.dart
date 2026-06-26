@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../accessibility/accessibility_labels.dart';
 import '../models/book_review.dart';
 import '../models/book.dart';
 import '../models/user_profile.dart';
@@ -90,44 +91,62 @@ class _ExpandableReviewTextState extends State<_ExpandableReviewText> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (overflows)
-            ShaderMask(
-              shaderCallback: (bounds) => const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.black, Colors.black, Colors.transparent],
-                stops: [0.0, _fadeStart, 1.0],
-              ).createShader(bounds),
-              blendMode: BlendMode.dstIn,
-              child: Text(
-                widget.text,
-                maxLines: _maxLines,
-                overflow: TextOverflow.clip,
-                style: const TextStyle(fontSize: 14, height: 1.55),
+            Semantics(
+              container: true,
+              label: 'Review for ${widget.bookTitle}. ${widget.text}',
+              child: ExcludeSemantics(
+                child: ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black, Colors.black, Colors.transparent],
+                    stops: [0.0, _fadeStart, 1.0],
+                  ).createShader(bounds),
+                  blendMode: BlendMode.dstIn,
+                  child: Text(
+                    widget.text,
+                    maxLines: _maxLines,
+                    overflow: TextOverflow.clip,
+                    style: const TextStyle(fontSize: 14, height: 1.55),
+                  ),
+                ),
               ),
             )
           else
-            Text(
-              widget.text,
-              style: const TextStyle(fontSize: 14, height: 1.55),
+            Semantics(
+              container: true,
+              label: 'Review for ${widget.bookTitle}. ${widget.text}',
+              child: ExcludeSemantics(
+                child: Text(
+                  widget.text,
+                  style: const TextStyle(fontSize: 14, height: 1.55),
+                ),
+              ),
             ),
           if (overflows) ...[  
             const SizedBox(height: 6),
-            GestureDetector(
-              onTap: _showFullReview,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                      color: Colors.deepOrange, width: 1.2),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'Read all',
-                  style: TextStyle(
-                    color: Colors.deepOrange,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
+            Semantics(
+              button: true,
+              label: 'Read full review for ${widget.bookTitle}',
+              child: GestureDetector(
+                onTap: _showFullReview,
+                child: ExcludeSemantics(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: Colors.deepOrange, width: 1.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'Read all',
+                      style: TextStyle(
+                        color: Colors.deepOrange,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -363,17 +382,24 @@ class _LogScreenState extends State<LogScreen> {
         spacing: 6,
         runSpacing: 6,
         children: activeEmojis.map((emoji) {
-          return GestureDetector(
-            onTap: () => _showReactorSheet(reviewId, emoji),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.deepOrange, width: 2),
+          return Semantics(
+            button: true,
+            label: '${emojiSemanticLabel(emoji)} reaction, ${counts[emoji]}',
+            hint: 'Shows who reacted',
+            child: GestureDetector(
+              onTap: () => _showReactorSheet(reviewId, emoji),
+              child: ExcludeSemantics(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.deepOrange, width: 2),
+                  ),
+                  child: Text('$emoji ${counts[emoji]}',
+                      style: const TextStyle(fontSize: 14)),
+                ),
               ),
-              child: Text('$emoji ${counts[emoji]}',
-                  style: const TextStyle(fontSize: 14)),
             ),
           );
         }).toList(),
@@ -409,12 +435,75 @@ class _LogScreenState extends State<LogScreen> {
     }
   }
 
+  String _twoDigitWords(int n) {
+    const underTwenty = [
+      'zero',
+      'one',
+      'two',
+      'three',
+      'four',
+      'five',
+      'six',
+      'seven',
+      'eight',
+      'nine',
+      'ten',
+      'eleven',
+      'twelve',
+      'thirteen',
+      'fourteen',
+      'fifteen',
+      'sixteen',
+      'seventeen',
+      'eighteen',
+      'nineteen'
+    ];
+    const tens = [
+      '',
+      '',
+      'twenty',
+      'thirty',
+      'forty',
+      'fifty',
+      'sixty',
+      'seventy',
+      'eighty',
+      'ninety'
+    ];
+    if (n < 20) return underTwenty[n];
+    final t = n ~/ 10;
+    final u = n % 10;
+    return u == 0 ? tens[t] : '${tens[t]} ${underTwenty[u]}';
+  }
+
+  String _spokenYear(int year) {
+    if (year >= 1900 && year <= 1999) {
+      final yy = year % 100;
+      return yy == 0 ? 'nineteen hundred' : 'nineteen ${_twoDigitWords(yy)}';
+    }
+    if (year >= 2000 && year <= 2099) {
+      final yy = year % 100;
+      if (yy == 0) return 'two thousand';
+      if (yy < 10) return 'two thousand ${_twoDigitWords(yy)}';
+      return 'twenty ${_twoDigitWords(yy)}';
+    }
+    return year.toString();
+  }
+
   Widget buildCard(BookReview review) {
     final coverUrl = getCoverUrl(review.coverId);
+    final ratingText = review.rating % 1 == 0
+        ? review.rating.toInt().toString()
+        : review.rating.toStringAsFixed(1);
 
-    return GestureDetector(
-      onLongPress: () => showOptions(review),
-      child: Card(
+    return Semantics(
+      container: true,
+      label:
+          '${review.title} by ${review.author}. Published in ${_spokenYear(review.year)}. Rated $ratingText out of 10.${review.isFavourite ? ' Marked as favourite.' : ''}',
+      hint: 'Long press for review options',
+      child: GestureDetector(
+        onLongPress: () => showOptions(review),
+        child: Card(
         color: review.isFavourite
             ? Colors.amber.withOpacity(0.15)
             : null,
@@ -431,6 +520,7 @@ class _LogScreenState extends State<LogScreen> {
                         width: 50,
                         height: 70,
                         fit: BoxFit.cover,
+                        excludeFromSemantics: true,
                         errorBuilder: (_, __, ___) => const SizedBox(
                           width: 50,
                           height: 70,
@@ -461,16 +551,28 @@ class _LogScreenState extends State<LogScreen> {
               ],
             ),
           ),
-          title: Text(
-            "${review.title} (${review.year})",
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          title: Semantics(
+            label: '${review.title}. Published in ${_spokenYear(review.year)}',
+            child: ExcludeSemantics(
+              child: Text(
+                "${review.title} (${review.year})",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(review.author),
               const SizedBox(height: 2),
-              Text("${review.rating % 1 == 0 ? review.rating.toInt() : review.rating.toStringAsFixed(1)}/10 ⭐"),
+              Semantics(
+                label: 'Rated $ratingText out of 10',
+                child: ExcludeSemantics(
+                  child: Text(
+                    '$ratingText/10 ⭐',
+                  ),
+                ),
+              ),
             ],
           ),
           children: [
@@ -498,12 +600,15 @@ class _LogScreenState extends State<LogScreen> {
           ],
         ),
       ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final grouped = groupReviews();
+    final textScale = MediaQuery.of(context).textScaleFactor;
+    final useCompactSort = textScale > 1.2;
 
     return Scaffold(
       backgroundColor: const Color(0xffF5F2ED),
@@ -514,7 +619,7 @@ class _LogScreenState extends State<LogScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: SizedBox(
-                height: 40,
+                height: useCompactSort ? 52 : 40,
                 child: Row(
                   children: [
                     const Icon(Icons.menu_book, size: 28),
@@ -527,29 +632,49 @@ class _LogScreenState extends State<LogScreen> {
                     const Expanded(
                       child: Text(
                         'Reading Log',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 19,
                         ),
                       ),
                     ),
-                    DropdownButton<String>(
-                      value: sortOption,
-                      isDense: true,
-                      underline: const SizedBox(),
-                      onChanged: (value) {
-                        setState(() {
-                          sortOption = value!;
-                          sortReviews();
-                        });
-                      },
-                      items: const [
-                        DropdownMenuItem(value: 'date', child: Text('Sort: Date')),
-                        DropdownMenuItem(value: 'alphabetical', child: Text('Sort: A–Z')),
-                        DropdownMenuItem(value: 'rating', child: Text('Sort: Rating')),
-                        DropdownMenuItem(value: 'author', child: Text('Sort: Author')),
-                      ],
-                    ),
+                    if (useCompactSort)
+                      PopupMenuButton<String>(
+                        tooltip: 'Sort reviews',
+                        icon: const Icon(Icons.sort),
+                        onSelected: (value) {
+                          setState(() {
+                            sortOption = value;
+                            sortReviews();
+                          });
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(value: 'date', child: Text('Sort: Date')),
+                          PopupMenuItem(value: 'alphabetical', child: Text('Sort: A–Z')),
+                          PopupMenuItem(value: 'rating', child: Text('Sort: Rating')),
+                          PopupMenuItem(value: 'author', child: Text('Sort: Author')),
+                        ],
+                      )
+                    else
+                      DropdownButton<String>(
+                        value: sortOption,
+                        isDense: true,
+                        underline: const SizedBox(),
+                        onChanged: (value) {
+                          setState(() {
+                            sortOption = value!;
+                            sortReviews();
+                          });
+                        },
+                        items: const [
+                          DropdownMenuItem(value: 'date', child: Text('Sort: Date')),
+                          DropdownMenuItem(value: 'alphabetical', child: Text('Sort: A–Z')),
+                          DropdownMenuItem(value: 'rating', child: Text('Sort: Rating')),
+                          DropdownMenuItem(value: 'author', child: Text('Sort: Author')),
+                        ],
+                      ),
                   ],
                 ),
               ),

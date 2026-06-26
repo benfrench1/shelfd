@@ -180,103 +180,115 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 52,
-                backgroundColor:
-                    const Color(0xff5C3A1E).withOpacity(0.15),
-                backgroundImage: avatar,
-                child: avatar == null
-                    ? const Icon(Icons.person,
-                        size: 52, color: Color(0xff5C3A1E))
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                profile.displayName,
-                style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white),
-              ),
-              if (profile.username?.isNotEmpty == true) ...[
-                const SizedBox(height: 4),
+          child: Semantics(
+            container: true,
+            label: 'Scanned profile for ${profile.displayName}${profile.username?.isNotEmpty == true ? ', username ${profile.username}' : ''}.',
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Semantics(
+                  image: true,
+                  label: '${profile.displayName} profile picture',
+                  child: ExcludeSemantics(
+                    child: CircleAvatar(
+                      radius: 52,
+                      backgroundColor:
+                          const Color(0xff5C3A1E).withOpacity(0.15),
+                      backgroundImage: avatar,
+                      child: avatar == null
+                          ? const Icon(Icons.person,
+                              size: 52, color: Color(0xff5C3A1E))
+                          : null,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Text(
-                  '@${profile.username}',
-                  style: const TextStyle(fontSize: 14, color: Colors.white70),
+                  profile.displayName,
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
                 ),
-              ],
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.deepOrange.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
+                if (profile.username?.isNotEmpty == true) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '@${profile.username}',
+                    style: const TextStyle(fontSize: 14, color: Colors.white70),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                ExcludeSemantics(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.deepOrange.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.qr_code_2,
+                            size: 14, color: Colors.deepOrange),
+                        SizedBox(width: 6),
+                        Text(
+                          'Scanned via QR code',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.deepOrange),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
+                const SizedBox(height: 36),
+                Row(
                   children: [
-                    Icon(Icons.qr_code_2,
-                        size: 14, color: Colors.deepOrange),
-                    SizedBox(width: 6),
-                    Text(
-                      'Scanned via QR code',
-                      style: TextStyle(
-                          fontSize: 12, color: Colors.deepOrange),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: adding
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white38),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Not Now'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: adding ? null : _addFriend,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepOrange,
+                          foregroundColor: Colors.white,
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: adding
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white),
+                              )
+                            : const Text('Add Friend',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                      ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 36),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: adding
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white38),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text('Not Now'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: adding ? null : _addFriend,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepOrange,
-                        foregroundColor: Colors.white,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: adding
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white),
-                            )
-                          : const Text('Add Friend',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

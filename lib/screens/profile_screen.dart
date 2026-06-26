@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import '../accessibility/accessibility_labels.dart';
 import '../services/auth_service.dart';
 import '../models/achievement.dart';
 import '../models/book_review.dart';
@@ -43,12 +44,16 @@ class ProfileScreen extends StatelessWidget {
                       'assets/images/shelfd_brand_name.png',
                       height: 18,
                       fit: BoxFit.contain,
+                      excludeFromSemantics: true,
                     ),
-                    const Expanded(
-                      child: Text(
-                        'Profile',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 19),
+                    Expanded(
+                      child: Semantics(
+                        header: true,
+                        child: Text(
+                          'Profile',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 19),
+                        ),
                       ),
                     ),
                     SizedBox(
@@ -57,6 +62,7 @@ class ProfileScreen extends StatelessWidget {
                         alignment: Alignment.centerRight,
                         child: IconButton(
                           icon: const Icon(Icons.settings_outlined),
+                          tooltip: 'Open account settings',
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           visualDensity: VisualDensity.compact,
@@ -74,10 +80,20 @@ class ProfileScreen extends StatelessWidget {
               ),
 
               // Tabs
-              const TabBar(
+              TabBar(
                 tabs: [
-                  Tab(icon: Icon(Icons.person_outline)),
-                  Tab(icon: Icon(Icons.bar_chart)),
+                  Tab(
+                    icon: Semantics(
+                      label: 'Profile details tab',
+                      child: ExcludeSemantics(child: Icon(Icons.person_outline)),
+                    ),
+                  ),
+                  Tab(
+                    icon: Semantics(
+                      label: 'Reading statistics tab',
+                      child: ExcludeSemantics(child: Icon(Icons.bar_chart)),
+                    ),
+                  ),
                 ],
               ),
 
@@ -158,8 +174,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
     BadgeRefreshNotifier.addListener(_refreshSeenIds);
     final myUid = FirebaseAuth.instance.currentUser?.uid;
     if (myUid != null) {
-      _activitySub = ActivityStreamService.unseenCountStream(myUid)
-          .listen((count) {
+      _activitySub = ActivityStreamService.unseenCountStream(myUid).listen((count) {
         if (mounted) setState(() => _activityCount = count);
       });
     }
@@ -259,11 +274,15 @@ class _UserProfileTabState extends State<_UserProfileTab> {
             child: Container(
               margin: const EdgeInsets.all(32),
               padding: const EdgeInsets.fromLTRB(28, 24, 28, 20),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height - 80,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Column(
+              child: SingleChildScrollView(
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
@@ -314,6 +333,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                     style: TextStyle(fontSize: 11, color: Colors.grey),
                   ),
                 ],
+              ),
               ),
             ),
           ),
@@ -383,21 +403,33 @@ class _UserProfileTabState extends State<_UserProfileTab> {
             }
           }
 
-          return GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            behavior: HitTestBehavior.opaque,
-            child: Center(
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: handleAvatarTap,
-                    child: CircleAvatar(
-                      radius: 140,
-                      backgroundImage: image,
+          return Semantics(
+            container: true,
+            label: 'Profile picture preview',
+            hint: 'Double tap outside the picture to close',
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              behavior: HitTestBehavior.opaque,
+              child: Center(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    Semantics(
+                      button: true,
+                      image: true,
+                      label: 'Enlarged profile picture',
+                      hint: 'Double tap to interact with the picture',
+                      child: GestureDetector(
+                        onTap: handleAvatarTap,
+                        child: ExcludeSemantics(
+                          child: CircleAvatar(
+                            radius: 140,
+                            backgroundImage: image,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
                   if (visibleMessage != null)
                     Positioned(
                       top: 300, // 280px avatar + 20px gap
@@ -424,7 +456,8 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                         ),
                       ),
                     ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -438,6 +471,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -449,66 +483,83 @@ class _UserProfileTabState extends State<_UserProfileTab> {
         expand: false,
         builder: (_, scrollController) => Padding(
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final textScale = MediaQuery.textScalerOf(context).scale(1);
+              final minAvatarExtent = (textScale > 1.2 || constraints.maxWidth < 360)
+                  ? 96.0
+                  : 80.0;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Choose an avatar',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  OverflowBar(
+                    alignment: MainAxisAlignment.spaceBetween,
+                    overflowAlignment: OverflowBarAlignment.end,
+                    overflowDirection: VerticalDirection.down,
+                    spacing: 12,
+                    overflowSpacing: 8,
+                    children: [
+                      const Text(
+                        'Choose an avatar',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          Navigator.of(sheetContext).pop();
+                          if (pendingAvatar != null && pendingAvatar != _avatarAsset) {
+                            await _authService.saveAvatarAsset(pendingAvatar!);
+                            if (mounted) {
+                              setState(() => _avatarAsset = pendingAvatar!);
+                            }
+                          }
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.green,
+                          textStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        child: const Text('Done'),
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: () async {
-                      Navigator.of(sheetContext).pop();
-                      if (pendingAvatar != null && pendingAvatar != _avatarAsset) {
-                        await _authService.saveAvatarAsset(pendingAvatar!);
-                        if (mounted) setState(() => _avatarAsset = pendingAvatar!);
-                      }
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.green,
-                      textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: GridView.builder(
+                      controller: scrollController,
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: minAvatarExtent,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: _avatarAssets.length,
+                      itemBuilder: (_, i) {
+                        final asset = _avatarAssets[i];
+                        final isSelected = pendingAvatar == asset;
+                        return GestureDetector(
+                          onTap: () {
+                            setSheetState(() => pendingAvatar = asset);
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: isSelected
+                                  ? Border.all(color: Colors.green, width: 5)
+                                  : Border.all(color: Colors.transparent, width: 5),
+                            ),
+                            child: CircleAvatar(
+                              backgroundImage: AssetImage(asset),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    child: const Text('Done'),
                   ),
                 ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: GridView.builder(
-                  controller: scrollController,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: _avatarAssets.length,
-                  itemBuilder: (_, i) {
-                    final asset = _avatarAssets[i];
-                    final isSelected = pendingAvatar == asset;
-                    return GestureDetector(
-                      onTap: () {
-                        setSheetState(() => pendingAvatar = asset);
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: isSelected
-                              ? Border.all(color: Colors.green, width: 5)
-                              : Border.all(color: Colors.transparent, width: 5),
-                        ),
-                        child: CircleAvatar(
-                          backgroundImage: AssetImage(asset),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ),
         ),
@@ -553,19 +604,26 @@ class _UserProfileTabState extends State<_UserProfileTab> {
               Positioned(
                 left: 0,
                 top: 0,
-                child: GestureDetector(
-                  onTap: _showEnlargedAvatar,
-                  child: CircleAvatar(
-                    radius: 52,
-                    backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
-                    backgroundImage: _avatarAsset != null
-                        ? AssetImage(_avatarAsset!) as ImageProvider
-                        : (user?.photoURL != null
-                            ? NetworkImage(user!.photoURL!)
-                            : null),
-                    child: _avatarAsset == null && user?.photoURL == null
-                        ? const Icon(Icons.person, size: 52, color: Color(0xff5C3A1E))
-                        : null,
+                child: Semantics(
+                  button: true,
+                  label: avatarSemanticLabel(isCurrentUser: true),
+                  hint: 'Opens your profile picture',
+                  child: GestureDetector(
+                    onTap: _showEnlargedAvatar,
+                    child: ExcludeSemantics(
+                      child: CircleAvatar(
+                        radius: 52,
+                        backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
+                        backgroundImage: _avatarAsset != null
+                            ? AssetImage(_avatarAsset!) as ImageProvider
+                            : (user?.photoURL != null
+                                ? NetworkImage(user!.photoURL!)
+                                : null),
+                        child: _avatarAsset == null && user?.photoURL == null
+                            ? const Icon(Icons.person, size: 52, color: Color(0xff5C3A1E))
+                            : null,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -578,6 +636,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     icon: const Icon(Icons.edit, size: 16, color: Colors.white),
+                    tooltip: 'Edit profile picture',
                     onPressed: _showAvatarPicker,
                   ),
                 ),
@@ -608,13 +667,20 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.w500),
                 ),
-                trailing: GestureDetector(
-                  onTap: _friendCode != null ? _showQrDialog : null,
-                  child: Icon(
-                    Icons.qr_code_2,
-                    color: _friendCode != null
-                        ? const Color(0xff5C3A1E)
-                        : Colors.grey.shade300,
+                trailing: Semantics(
+                  button: _friendCode != null,
+                  label: 'Show friend QR code',
+                  child: GestureDetector(
+                    onTap: _friendCode != null ? _showQrDialog : null,
+                    child: ExcludeSemantics(
+                      child: Icon(
+                        Icons.qr_code_2,
+                        size: MediaQuery.textScalerOf(context).scale(24),
+                        color: _friendCode != null
+                            ? const Color(0xff5C3A1E)
+                            : Colors.grey.shade300,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -636,14 +702,17 @@ class _UserProfileTabState extends State<_UserProfileTab> {
 
           // ── Achievements ──────────────────────────────────────────────────
           const SizedBox(height: 32),
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              'Achievements',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xff5C3A1E),
+            child: Semantics(
+              header: true,
+              child: Text(
+                'Achievements',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xff5C3A1E),
+                ),
               ),
             ),
           ),
@@ -665,63 +734,72 @@ class _UserProfileTabState extends State<_UserProfileTab> {
           const SizedBox(height: 24),
 
           // ── Friends ──────────────────────────────────────────────────────
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              'Friends',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xff5C3A1E),
+            child: Semantics(
+              header: true,
+              child: Text(
+                'Friends',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xff5C3A1E),
+                ),
               ),
             ),
           ),
           const SizedBox(height: 12),
-          Card(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const FriendsScreen()),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: 16, horizontal: 20),
-                child: Row(
-                  children: [
-                    const Text('👥',
-                        style: TextStyle(fontSize: 32)),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Text(
-                        'View Friends',
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                    if (_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount > 0) ...
-                      [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.deepOrange,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount}',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold),
-                          ),
+          Semantics(
+            button: true,
+            label: 'View friends',
+            hint: 'Opens your friends screen',
+            excludeSemantics: true,
+            child: Card(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const FriendsScreen()),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 16, horizontal: 20),
+                  child: Row(
+                    children: [
+                      const Text('👥',
+                          style: TextStyle(fontSize: 32)),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Text(
+                          'View Friends',
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500),
                         ),
-                        const SizedBox(width: 8),
-                      ],
-                    Icon(Icons.arrow_forward_ios,
-                        size: 16,
-                        color: Colors.grey.shade500),
-                  ],
+                      ),
+                      if (_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount > 0) ...
+                        [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.deepOrange,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount}',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                      Icon(Icons.arrow_forward_ios,
+                          size: 16,
+                          color: Colors.grey.shade500),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -729,14 +807,17 @@ class _UserProfileTabState extends State<_UserProfileTab> {
           const SizedBox(height: 24),
 
           // ── Activity Stream ───────────────────────────────────────────────
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              'Activity',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xff5C3A1E),
+            child: Semantics(
+              header: true,
+              child: Text(
+                'Activity',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xff5C3A1E),
+                ),
               ),
             ),
           ),
@@ -1366,28 +1447,35 @@ class _AchievementMedal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showEnlarged(context),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _medalCircle(size: 64, iconSize: 28, fontSize: 28),
-          const SizedBox(height: 6),
-          SizedBox(
-            width: 72,
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10,
-                color: unlocked ? const Color(0xff5C3A1E) : Colors.grey,
-                fontWeight: unlocked ? FontWeight.w600 : FontWeight.normal,
+    return Semantics(
+      button: true,
+      label: '${unlocked ? 'Unlocked' : 'Locked'} achievement. ${emojiSemanticLabel(emoji)}. $label',
+      hint: 'Opens achievement details',
+      child: GestureDetector(
+        onTap: () => _showEnlarged(context),
+        child: ExcludeSemantics(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _medalCircle(size: 64, iconSize: 28, fontSize: 28),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: 72,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: unlocked ? const Color(0xff5C3A1E) : Colors.grey,
+                    fontWeight: unlocked ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../accessibility/accessibility_labels.dart';
 import '../services/auth_service.dart';
 import '../services/book_service.dart';
 import '../services/storage_service.dart';
@@ -120,6 +121,36 @@ class _SearchScreenState
     }
   }
 
+  String _twoDigitWords(int n) {
+    const underTwenty = [
+      'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+      'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen',
+      'sixteen', 'seventeen', 'eighteen', 'nineteen'
+    ];
+    const tens = [
+      '', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy',
+      'eighty', 'ninety'
+    ];
+    if (n < 20) return underTwenty[n];
+    final t = n ~/ 10;
+    final u = n % 10;
+    return u == 0 ? tens[t] : '${tens[t]} ${underTwenty[u]}';
+  }
+
+  String _spokenYear(int year) {
+    if (year >= 1900 && year <= 1999) {
+      final yy = year % 100;
+      return yy == 0 ? 'nineteen hundred' : 'nineteen ${_twoDigitWords(yy)}';
+    }
+    if (year >= 2000 && year <= 2099) {
+      final yy = year % 100;
+      if (yy == 0) return 'two thousand';
+      if (yy < 10) return 'two thousand ${_twoDigitWords(yy)}';
+      return 'twenty ${_twoDigitWords(yy)}';
+    }
+    return year.toString();
+  }
+
   Future<void> search() async {
     setState(() {
       isLoading = true;
@@ -178,23 +209,31 @@ class _SearchScreenState
                         'assets/images/shelfd_brand_name.png',
                         height: 36,
                         fit: BoxFit.contain,
+                        excludeFromSemantics: true,
                       ),
                       const Spacer(),
-                      InkWell(
-                        borderRadius: BorderRadius.circular(22),
-                        onTap: () => widget.onNavigate(3),
-                        child: CircleAvatar(
-                          radius: 20,
-                          backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
-                          backgroundImage: _avatarAsset != null
-                              ? AssetImage(_avatarAsset!) as ImageProvider
-                              : (FirebaseAuth.instance.currentUser?.photoURL != null
-                                  ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
-                                  : null),
-                          child: _avatarAsset == null &&
-                                  FirebaseAuth.instance.currentUser?.photoURL == null
-                              ? const Icon(Icons.person, size: 20, color: Color(0xff5C3A1E))
-                              : null,
+                      Semantics(
+                        button: true,
+                        label: avatarSemanticLabel(isCurrentUser: true),
+                        hint: 'Opens your profile screen',
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(22),
+                          onTap: () => widget.onNavigate(3),
+                          child: ExcludeSemantics(
+                            child: CircleAvatar(
+                              radius: 20,
+                              backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
+                              backgroundImage: _avatarAsset != null
+                                  ? AssetImage(_avatarAsset!) as ImageProvider
+                                  : (FirebaseAuth.instance.currentUser?.photoURL != null
+                                      ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
+                                      : null),
+                              child: _avatarAsset == null &&
+                                      FirebaseAuth.instance.currentUser?.photoURL == null
+                                  ? const Icon(Icons.person, size: 20, color: Color(0xff5C3A1E))
+                                  : null,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -224,7 +263,10 @@ class _SearchScreenState
                           ),
                         ),
                         IconButton(
-                          icon: const _BarcodeIcon(color: Color(0xff5C3A1E), size: 22),
+                          icon: _BarcodeIcon(
+                            color: const Color(0xff5C3A1E),
+                            size: MediaQuery.textScalerOf(context).scale(22),
+                          ),
                           tooltip: 'Scan ISBN barcode',
                           onPressed: _openIsbnScanner,
                         ),
@@ -261,139 +303,151 @@ class _SearchScreenState
               child: CircularProgressIndicator(),
             ),
 
-          if (_searchError != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  const Icon(Icons.wifi_off, color: Colors.grey),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _searchError!,
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
           Expanded(
-            child: ListView.builder(
+            child: _searchError != null
+                ? SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 2),
+                          child: Icon(Icons.wifi_off, color: Colors.grey),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _searchError!,
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
               itemCount: books.length,
               itemBuilder: (context, index) {
                 final book = books[index];
                 final review = findReview(book);
 
-                return ListTile(
-                  leading: getCoverUrl(book.coverId) != null
-                      ? Image.network(
-                          getCoverUrl(book.coverId)!,
-                          width: 40,
-                          errorBuilder: (_, __, ___) => const SizedBox(
-                            width: 40,
-                            child: Icon(Icons.book),
-                          ),
-                        )
-                      : const SizedBox(
-                          width: 40,
-                          child: Icon(Icons.book),
-                        ),
-
-                  title: Text(book.title),
-
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("${book.author} (${book.year})"),
-
-                      if (review != null)
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.check,
-                              size: 16,
-                              color: Colors.green,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              "Already logged — ${review.rating.toStringAsFixed(1)} / 10",
-                              style: const TextStyle(
-                                color: Colors.green,
+                return Semantics(
+                  container: true,
+                  label:
+                      '${book.title} by ${book.author}. Published in ${_spokenYear(book.year)}.',
+                  child: ExcludeSemantics(
+                    child: ListTile(
+                      leading: getCoverUrl(book.coverId) != null
+                          ? Image.network(
+                              getCoverUrl(book.coverId)!,
+                              width: 40,
+                              excludeFromSemantics: true,
+                              errorBuilder: (_, __, ___) => const SizedBox(
+                                width: 40,
+                                child: Icon(Icons.book),
                               ),
+                            )
+                          : const SizedBox(
+                              width: 40,
+                              child: Icon(Icons.book),
                             ),
-                          ],
-                        ),
-                    ],
-                  ),
 
-                  trailing: review == null
-                      ? _WishlistButton(
-                          book: book,
-                          isWishlisted: _wishlistedKeys.contains(
-                            '${book.title.toLowerCase()}|||${book.author.toLowerCase()}',
-                          ),
-                          onChanged: loadReviews,
-                        )
-                      : null,
+                      title: Text(book.title),
 
-                  onTap: review == null
-                      ? () async {
-                          final index =
-                              await StorageService.findReviewIndex(
-                            book.title,
-                            book.author,
-                          );
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("${book.author} (${book.year})"),
 
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ReviewScreen(
-                                book: book,
-                                reviewIndex: index,
-                                existingReview: review,
-                              ),
-                            ),
-                          ).then((_) => loadReviews());
-                        }
-                      : null,
-
-                  onLongPress: review != null
-                      ? () {
-                          showModalBottomSheet(
-                            context: context,
-                            builder: (context) => SafeArea(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  ListTile(
-                                    leading: const Icon(Icons.edit),
-                                    title: const Text('Edit Review'),
-                                    onTap: () async {
-                                      Navigator.pop(context);
-                                      final idx =
-                                          await StorageService.findReviewIndex(
-                                        book.title,
-                                        book.author,
-                                      );
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => ReviewScreen(
-                                            book: book,
-                                            reviewIndex: idx,
-                                            existingReview: review,
-                                          ),
-                                        ),
-                                      ).then((_) => loadReviews());
-                                    },
+                          if (review != null)
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.check,
+                                  size: 16,
+                                  color: Colors.green,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  "Already logged — ${review.rating.toStringAsFixed(1)} / 10",
+                                  style: const TextStyle(
+                                    color: Colors.green,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          );
-                        }
-                      : null,
+                        ],
+                      ),
+
+                      trailing: review == null
+                          ? _WishlistButton(
+                              book: book,
+                              isWishlisted: _wishlistedKeys.contains(
+                                '${book.title.toLowerCase()}|||${book.author.toLowerCase()}',
+                              ),
+                              onChanged: loadReviews,
+                            )
+                          : null,
+
+                      onTap: review == null
+                          ? () async {
+                              final index =
+                                  await StorageService.findReviewIndex(
+                                book.title,
+                                book.author,
+                              );
+
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ReviewScreen(
+                                    book: book,
+                                    reviewIndex: index,
+                                    existingReview: review,
+                                  ),
+                                ),
+                              ).then((_) => loadReviews());
+                            }
+                          : null,
+
+                      onLongPress: review != null
+                          ? () {
+                              showModalBottomSheet(
+                                context: context,
+                                builder: (context) => SafeArea(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(Icons.edit),
+                                        title: const Text('Edit Review'),
+                                        onTap: () async {
+                                          Navigator.pop(context);
+                                          final idx =
+                                              await StorageService.findReviewIndex(
+                                            book.title,
+                                            book.author,
+                                          );
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => ReviewScreen(
+                                                book: book,
+                                                reviewIndex: idx,
+                                                existingReview: review,
+                                              ),
+                                            ),
+                                          ).then((_) => loadReviews());
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                          : null,
+                    ),
+                  ),
                 );
               },
             ),
@@ -565,7 +619,7 @@ class _WishlistButtonState extends State<_WishlistButton> {
                 size: 18,
               ),
               const SizedBox(width: 8),
-              Text(_wishlisted ? 'Added to Future Reads' : 'Removed from Future Reads'),
+              Flexible(child: Text(_wishlisted ? 'Added to Future Reads' : 'Removed from Future Reads')),
             ],
           ),
           duration: const Duration(seconds: 2),

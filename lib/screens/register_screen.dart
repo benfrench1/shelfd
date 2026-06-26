@@ -103,6 +103,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Image.asset(
             'assets/images/shelf_wallpaper_2.png',
             fit: BoxFit.cover,
+            excludeFromSemantics: true,
           ),
           SafeArea(
             child: Center(
@@ -120,6 +121,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         height: 200,
                         width: 200,
                         fit: BoxFit.contain,
+                        excludeFromSemantics: true,
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -139,6 +141,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             child: Image.asset(
                               'assets/images/shelfd_brand_name.png',
                               height: 40,
+                              excludeFromSemantics: true,
                             ),
                           ),
                         ],
@@ -226,6 +229,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         borderSide: const BorderSide(color: Colors.red, width: 1.5),
                       ),
                       suffixIcon: IconButton(
+                        tooltip: _obscurePassword ? 'Show password' : 'Hide password',
                         icon: Icon(
                           _obscurePassword
                               ? Icons.visibility_outlined
@@ -277,6 +281,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         borderSide: const BorderSide(color: Colors.red, width: 1.5),
                       ),
                       suffixIcon: IconButton(
+                        tooltip: _obscureConfirmPassword ? 'Show confirm password' : 'Hide confirm password',
                         icon: Icon(
                           _obscureConfirmPassword
                               ? Icons.visibility_outlined
@@ -335,8 +340,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
                         'Already have an account? ',

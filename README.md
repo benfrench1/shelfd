@@ -1,4 +1,4 @@
-<img src="./assets/images/shelfd_full_logo.png" alt="brand" title="brand" width="100"/>
+<img src="./assets/images/shelfd_logo.png" alt="brand" title="brand" width="100"/>
 
 A new Flutter project - To log, rate, review books
 
