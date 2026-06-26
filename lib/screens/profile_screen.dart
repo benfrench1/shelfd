@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../accessibility/accessibility_labels.dart';
+import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../models/achievement.dart';
 import '../models/book_review.dart';
@@ -24,10 +25,11 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xffF5F2ED),
+        backgroundColor: c.scaffoldBg,
         body: SafeArea(
           child: Column(
             children: [
@@ -261,6 +263,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
   void _showQrDialog() {
     final code = _friendCode;
     if (code == null) return;
+    final c = ShelfdThemeScope.colorsOf(context);
     showDialog(
       context: context,
       barrierColor: Colors.black87,
@@ -278,7 +281,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                 maxHeight: MediaQuery.of(context).size.height - 80,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: c.cardBg,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: SingleChildScrollView(
@@ -319,8 +322,8 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                       icon: const Icon(Icons.qr_code_scanner, size: 18),
                       label: const Text("Scan a Friend's Code"),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xff5C3A1E),
-                        side: const BorderSide(color: Color(0xff5C3A1E)),
+                        foregroundColor: c.brandColor,
+                        side: BorderSide(color: c.brandColor),
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
@@ -587,6 +590,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     final user = FirebaseAuth.instance.currentUser;
 
     return SingleChildScrollView(
@@ -613,14 +617,14 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                     child: ExcludeSemantics(
                       child: CircleAvatar(
                         radius: 52,
-                        backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
+                        backgroundColor: c.avatarBg,
                         backgroundImage: _avatarAsset != null
                             ? AssetImage(_avatarAsset!) as ImageProvider
                             : (user?.photoURL != null
                                 ? NetworkImage(user!.photoURL!)
                                 : null),
                         child: _avatarAsset == null && user?.photoURL == null
-                            ? const Icon(Icons.person, size: 52, color: Color(0xff5C3A1E))
+                            ? Icon(Icons.person, size: 52, color: c.brandColor)
                             : null,
                       ),
                     ),
@@ -632,7 +636,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                 right: 0,
                 child: CircleAvatar(
                   radius: 16,
-                  backgroundColor: Colors.deepOrange,
+                  backgroundColor: c.primaryAccent,
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     icon: const Icon(Icons.edit, size: 16, color: Colors.white),
@@ -677,7 +681,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                         Icons.qr_code_2,
                         size: MediaQuery.textScalerOf(context).scale(24),
                         color: _friendCode != null
-                            ? const Color(0xff5C3A1E)
+                            ? c.brandColor
                             : Colors.grey.shade300,
                       ),
                     ),
@@ -711,7 +715,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xff5C3A1E),
+                  color: c.brandColor,
                 ),
               ),
             ),
@@ -743,7 +747,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xff5C3A1E),
+                  color: c.brandColor,
                 ),
               ),
             ),
@@ -782,7 +786,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: Colors.deepOrange,
+                              color: c.primaryAccent,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
@@ -816,7 +820,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xff5C3A1E),
+                  color: c.brandColor,
                 ),
               ),
             ),
@@ -842,11 +846,11 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: Colors.deepOrange.withOpacity(0.1),
+                              color: c.primaryAccent.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.groups,
-                                size: 22, color: Colors.deepOrange),
+                            child: Icon(Icons.groups,
+                                size: 22, color: c.primaryAccent),
                           ),
                           Positioned(
                             right: 0,
@@ -854,8 +858,8 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                             child: Container(
                               width: 18,
                               height: 18,
-                              decoration: const BoxDecoration(
-                                color: Colors.deepOrange,
+                              decoration: BoxDecoration(
+                                color: c.primaryAccent,
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(Icons.favorite,
@@ -879,7 +883,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: Colors.deepOrange,
+                          color: c.primaryAccent,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -937,6 +941,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     return AlertDialog(
       insetPadding:
           const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -1013,7 +1018,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.deepOrange,
+            backgroundColor: c.primaryAccent,
             foregroundColor: Colors.white,
           ),
           onPressed: _isLoading
@@ -1447,6 +1452,7 @@ class _AchievementMedal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     return Semantics(
       button: true,
       label: '${unlocked ? 'Unlocked' : 'Locked'} achievement. ${emojiSemanticLabel(emoji)}. $label',
@@ -1468,7 +1474,7 @@ class _AchievementMedal extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 10,
-                    color: unlocked ? const Color(0xff5C3A1E) : Colors.grey,
+                    color: unlocked ? c.brandColor : Colors.grey,
                     fontWeight: unlocked ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),

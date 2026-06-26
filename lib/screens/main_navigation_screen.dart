@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
 import '../services/activity_stream_service.dart';
+import '../theme/app_theme.dart';
 import '../services/badge_refresh_notifier.dart';
 import '../services/friend_code_service.dart';
 import '../services/friend_service.dart';
@@ -255,6 +256,7 @@ class _MainNavigationScreenState
       WishlistScreen(onNavigate: onItemTapped),
     ];
 
+    final c = ShelfdThemeScope.colorsOf(context);
     return Scaffold(
       body: screens[selectedIndex],
 
@@ -263,8 +265,8 @@ class _MainNavigationScreenState
         onTap: onItemTapped,
         type: BottomNavigationBarType.fixed,
 
-        selectedItemColor: Colors.deepOrange,
-        unselectedItemColor: Colors.grey,
+        selectedItemColor: c.primaryAccent,
+        unselectedItemColor: c.textSecondary,
         selectedFontSize: 11,
         unselectedFontSize: 10,
 
@@ -293,8 +295,8 @@ class _MainNavigationScreenState
                     child: Container(
                       width: 16,
                       height: 16,
-                      decoration: const BoxDecoration(
-                        color: Colors.deepOrange,
+                      decoration: BoxDecoration(
+                        color: c.primaryAccent,
                         shape: BoxShape.circle,
                       ),
                       child: Center(
@@ -379,10 +381,11 @@ class _QrAddSheetState extends State<_QrAddSheet> {
             ? NetworkImage(profile.photoUrl!)
             : null;
 
+    final c = ShelfdThemeScope.colorsOf(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xffF5F2ED),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: c.scaffoldBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       child: Column(
@@ -400,13 +403,16 @@ class _QrAddSheetState extends State<_QrAddSheet> {
           ),
 
           // Avatar
-          CircleAvatar(
-            radius: 44,
-            backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
-            backgroundImage: avatar,
-            child: avatar == null
-                ? const Icon(Icons.person, size: 44, color: Color(0xff5C3A1E))
-                : null,
+          themedAvatar(
+            colors: c,
+            child: CircleAvatar(
+              radius: 44,
+              backgroundColor: c.avatarBg,
+              backgroundImage: avatar,
+              child: avatar == null
+                  ? Icon(Icons.person, size: 44, color: c.brandColor)
+                  : null,
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -419,7 +425,7 @@ class _QrAddSheetState extends State<_QrAddSheet> {
             const SizedBox(height: 4),
             Text(
               '@${profile.username}',
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 14, color: c.textSecondary),
             ),
           ],
           const SizedBox(height: 6),
@@ -428,17 +434,17 @@ class _QrAddSheetState extends State<_QrAddSheet> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.deepOrange.withOpacity(0.1),
+              color: c.primaryAccent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.qr_code_2, size: 14, color: Colors.deepOrange),
-                SizedBox(width: 4),
+                Icon(Icons.qr_code_2, size: 14, color: c.primaryAccent),
+                const SizedBox(width: 4),
                 Text(
                   'Scanned via QR code',
-                  style: TextStyle(fontSize: 12, color: Colors.deepOrange),
+                  style: TextStyle(fontSize: 12, color: c.primaryAccent),
                 ),
               ],
             ),
@@ -464,7 +470,7 @@ class _QrAddSheetState extends State<_QrAddSheet> {
                 child: ElevatedButton(
                   onPressed: _loading ? null : _accept,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepOrange,
+                    backgroundColor: c.primaryAccent,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(

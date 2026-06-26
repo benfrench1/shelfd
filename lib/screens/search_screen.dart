@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../accessibility/accessibility_labels.dart';
+import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../services/book_service.dart';
 import '../services/storage_service.dart';
@@ -190,8 +191,9 @@ class _SearchScreenState
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     return Scaffold(
-      backgroundColor: const Color(0xffF5F2ED),
+      backgroundColor: c.scaffoldBg,
 
       body: SafeArea(
         child: Column(
@@ -222,7 +224,7 @@ class _SearchScreenState
                           child: ExcludeSemantics(
                             child: CircleAvatar(
                               radius: 20,
-                              backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
+                              backgroundColor: c.avatarBg,
                               backgroundImage: _avatarAsset != null
                                   ? AssetImage(_avatarAsset!) as ImageProvider
                                   : (FirebaseAuth.instance.currentUser?.photoURL != null
@@ -230,7 +232,7 @@ class _SearchScreenState
                                       : null),
                               child: _avatarAsset == null &&
                                       FirebaseAuth.instance.currentUser?.photoURL == null
-                                  ? const Icon(Icons.person, size: 20, color: Color(0xff5C3A1E))
+                                  ? Icon(Icons.person, size: 20, color: c.brandColor)
                                   : null,
                             ),
                           ),
@@ -245,7 +247,7 @@ class _SearchScreenState
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: c.cardBg,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -264,7 +266,7 @@ class _SearchScreenState
                         ),
                         IconButton(
                           icon: _BarcodeIcon(
-                            color: const Color(0xff5C3A1E),
+                            color: c.brandColor,
                             size: MediaQuery.textScalerOf(context).scale(22),
                           ),
                           tooltip: 'Scan ISBN barcode',
@@ -280,7 +282,7 @@ class _SearchScreenState
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepOrange,
+                        backgroundColor: c.primaryAccent,
                         padding: const EdgeInsets.all(14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -633,11 +635,12 @@ class _WishlistButtonState extends State<_WishlistButton> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     return IconButton(
       tooltip: _wishlisted ? "Remove from Future Reads" : "Add to Future Reads",
       icon: Icon(
         _wishlisted ? Icons.bookmark : Icons.bookmark_add_outlined,
-        color: _wishlisted ? Colors.deepOrange : Colors.grey,
+        color: _wishlisted ? c.primaryAccent : c.textSecondary,
       ),
       onPressed: () => _toggle(context),
     );

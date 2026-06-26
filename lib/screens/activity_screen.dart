@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../accessibility/accessibility_labels.dart';
+import '../theme/app_theme.dart';
 import '../services/activity_stream_service.dart';
 
 class ActivityScreen extends StatefulWidget {
@@ -34,10 +35,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     return Scaffold(
-      backgroundColor: const Color(0xffF5F2ED),
+      backgroundColor: c.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xffF5F2ED),
+        backgroundColor: c.scaffoldBg,
         elevation: 0,
         title: const Text('Activity',
             style: TextStyle(fontWeight: FontWeight.bold)),
@@ -124,6 +126,7 @@ class _ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     final seen = data['seen'] as bool? ?? false;
     final isPrivate = data['reactorIsPrivate'] as bool? ?? false;
     final isFriend = data['reactorIsFriend'] as bool? ?? false;
@@ -157,13 +160,13 @@ class _ActivityCard extends StatelessWidget {
         label: '$actorName reacted to your review of $bookTitle. Reactions: $reactionSummary.${seen ? '' : ' New activity.'}',
         child: ExcludeSemantics(
           child: Card(
-            color: seen ? null : const Color(0xffFFF8F2),
+            color: seen ? null : c.primaryAccent.withValues(alpha: 0.07),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
               side: seen
                   ? BorderSide.none
                   : BorderSide(
-                      color: Colors.deepOrange.withOpacity(0.25), width: 1),
+                      color: c.primaryAccent.withValues(alpha: 0.25), width: 1),
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -186,11 +189,11 @@ class _ActivityCard extends StatelessWidget {
                 CircleAvatar(
                   radius: 22,
                   backgroundColor:
-                      const Color(0xff5C3A1E).withOpacity(0.12),
+                      c.avatarBg,
                   backgroundImage: avatar,
                   child: avatar == null
-                      ? const Icon(Icons.person,
-                          size: 22, color: Color(0xff5C3A1E))
+                      ? Icon(Icons.person,
+                          size: 22, color: c.brandColor)
                       : null,
                 ),
               const SizedBox(width: 12),
@@ -202,8 +205,8 @@ class _ActivityCard extends StatelessWidget {
                   children: [
                     RichText(
                       text: TextSpan(
-                        style: const TextStyle(
-                            fontSize: 14, color: Colors.black87),
+                        style: TextStyle(
+                            fontSize: 14, color: c.textPrimary),
                         children: [
                           TextSpan(
                             text: showAsPrivate
@@ -232,11 +235,11 @@ class _ActivityCard extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.deepOrange.withOpacity(0.08),
+                                  color: c.primaryAccent.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
                                     color:
-                                        Colors.deepOrange.withOpacity(0.2),
+                                        c.primaryAccent.withValues(alpha: 0.2),
                                   ),
                                 ),
                                 child: Text(e,
@@ -263,8 +266,8 @@ class _ActivityCard extends StatelessWidget {
                   child: Container(
                     width: 8,
                     height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.deepOrange,
+                    decoration: BoxDecoration(
+                      color: c.primaryAccent,
                       shape: BoxShape.circle,
                     ),
                   ),

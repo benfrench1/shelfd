@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../accessibility/accessibility_labels.dart';
+import '../theme/app_theme.dart';
 import '../models/book.dart';
 import '../services/auth_service.dart';
 import '../services/wishlist_service.dart';
@@ -54,14 +55,15 @@ class _WishlistScreenState extends State<WishlistScreen> {
     showModalBottomSheet(
       context: context,
       builder: (context) {
+        final c = ShelfdThemeScope.colorsOf(context);
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(
+                leading: Icon(
                   Icons.rate_review_outlined,
-                  color: Colors.deepOrange,
+                  color: c.primaryAccent,
                 ),
                 title: const Text('Review Now'),
                 onTap: () {
@@ -117,11 +119,12 @@ class _WishlistScreenState extends State<WishlistScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     final textScale = MediaQuery.of(context).textScaleFactor;
     final isLargeText = textScale > 1.3;
 
     return Scaffold(
-      backgroundColor: const Color(0xffF5F2ED),
+      backgroundColor: c.scaffoldBg,
       body: SafeArea(
         child: Column(
           children: [
@@ -172,7 +175,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                           child: ExcludeSemantics(
                             child: CircleAvatar(
                               radius: 20,
-                              backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
+                              backgroundColor: c.avatarBg,
                               backgroundImage: _avatarAsset != null
                                   ? AssetImage(_avatarAsset!) as ImageProvider
                                   : (FirebaseAuth.instance.currentUser?.photoURL != null
@@ -180,7 +183,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                                       : null),
                               child: _avatarAsset == null &&
                                       FirebaseAuth.instance.currentUser?.photoURL == null
-                                  ? const Icon(Icons.person, size: 20, color: Color(0xff5C3A1E))
+                                  ? Icon(Icons.person, size: 20, color: c.brandColor)
                                   : null,
                             ),
                           ),
@@ -205,10 +208,10 @@ class _WishlistScreenState extends State<WishlistScreen> {
                     color: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     "Your future reads list is empty.",
                     style: TextStyle(
-                      color: Colors.black45,
+                      color: c.textMuted,
                       fontSize: 15,
                     ),
                   ),
@@ -217,14 +220,14 @@ class _WishlistScreenState extends State<WishlistScreen> {
                     alignment: WrapAlignment.center,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         "Search for books and tap ",
-                        style: TextStyle(color: Colors.black38, fontSize: 13),
+                        style: TextStyle(color: c.textSubtle, fontSize: 13),
                       ),
-                      const Icon(Icons.bookmark_add_outlined, size: 16, color: Colors.black38),
-                      const Text(
+                      Icon(Icons.bookmark_add_outlined, size: 16, color: c.textSubtle),
+                      Text(
                         " to add them.",
-                        style: TextStyle(color: Colors.black38, fontSize: 13),
+                        style: TextStyle(color: c.textSubtle, fontSize: 13),
                       ),
                     ],
                   ),

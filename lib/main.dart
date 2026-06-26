@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,35 +15,65 @@ void main() async {
   runApp(const BookLoggerApp());
 }
 
-class BookLoggerApp extends StatelessWidget {
+class BookLoggerApp extends StatefulWidget {
   const BookLoggerApp({super.key});
 
   @override
+  State<BookLoggerApp> createState() => _BookLoggerAppState();
+}
+
+class _BookLoggerAppState extends State<BookLoggerApp> {
+  ShelfdTheme _theme = ShelfdTheme.defaultTheme;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('shelfd_theme');
+    if (saved != null && mounted) {
+      final t = ShelfdTheme.values.firstWhere(
+        (v) => v.name == saved,
+        orElse: () => ShelfdTheme.defaultTheme,
+      );
+      setState(() => _theme = t);
+    }
+  }
+
+  void _onThemeChanged(ShelfdTheme t) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('shelfd_theme', t.name);
+    if (mounted) setState(() => _theme = t);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Book Logger',
-      debugShowCheckedModeBanner: false,
-
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
+    final colors = AppThemeData.colorsFor(_theme);
+    return ShelfdThemeScope(
+      theme: _theme,
+      colors: colors,
+      onThemeChanged: _onThemeChanged,
+      child: MaterialApp(
+        title: 'Book Logger',
+        debugShowCheckedModeBanner: false,
+        theme: AppThemeData.themeDataFor(_theme),
+        home: StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasData) {
+              return const MainNavigationScreen();
+            }
+            return const LoginScreen();
+          },
         ),
-        useMaterial3: true,
-      ),
-
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          if (snapshot.hasData) {
-            return const MainNavigationScreen();
-          }
-          return const LoginScreen();
-        },
       ),
     );
   }

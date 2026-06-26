@@ -5,6 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../models/user_profile.dart';
 import '../services/friend_code_service.dart';
 import '../services/friend_service.dart';
+import '../theme/app_theme.dart';
 
 enum _ScanState { scanning, loading, confirm, adding }
 
@@ -133,6 +134,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   }
 
   Widget _buildScanner() {
+    final c = ShelfdThemeScope.colorsOf(context);
     return Stack(
       children: [
         MobileScanner(controller: _controller, onDetect: _onDetect),
@@ -142,14 +144,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             width: 260,
             height: 260,
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.deepOrange, width: 3),
+              border: Border.all(color: c.primaryAccent, width: 3),
               borderRadius: BorderRadius.circular(16),
             ),
           ),
         ),
         if (_state == _ScanState.loading)
-          const Center(
-            child: CircularProgressIndicator(color: Colors.deepOrange),
+          Center(
+            child: CircularProgressIndicator(color: c.primaryAccent),
           ),
         Positioned(
           bottom: 56,
@@ -168,6 +170,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   }
 
   Widget _buildConfirm() {
+    final c = ShelfdThemeScope.colorsOf(context);
     final profile = _scannedProfile!;
     final ImageProvider? avatar = profile.avatarAsset != null
         ? AssetImage(profile.avatarAsset!) as ImageProvider
@@ -193,11 +196,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     child: CircleAvatar(
                       radius: 52,
                       backgroundColor:
-                          const Color(0xff5C3A1E).withOpacity(0.15),
+                          c.avatarBg,
                       backgroundImage: avatar,
                       child: avatar == null
-                          ? const Icon(Icons.person,
-                              size: 52, color: Color(0xff5C3A1E))
+                          ? Icon(Icons.person,
+                              size: 52, color: c.brandColor)
                           : null,
                     ),
                   ),
@@ -223,19 +226,19 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.deepOrange.withOpacity(0.15),
+                      color: c.primaryAccent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.qr_code_2,
-                            size: 14, color: Colors.deepOrange),
-                        SizedBox(width: 6),
+                            size: 14, color: c.primaryAccent),
+                        const SizedBox(width: 6),
                         Text(
                           'Scanned via QR code',
                           style: TextStyle(
-                              fontSize: 12, color: Colors.deepOrange),
+                              fontSize: 12, color: c.primaryAccent),
                         ),
                       ],
                     ),
@@ -265,7 +268,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                       child: ElevatedButton(
                         onPressed: adding ? null : _addFriend,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.deepOrange,
+                          backgroundColor: c.primaryAccent,
                           foregroundColor: Colors.white,
                           padding:
                               const EdgeInsets.symmetric(vertical: 14),
