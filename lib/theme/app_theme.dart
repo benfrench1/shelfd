@@ -26,13 +26,13 @@ extension ShelfdThemeExt on ShelfdTheme {
           ],
         ShelfdTheme.highContrast => const [
             Color(0xFF000000),
-            Color(0xFFFFD700),
+            Color(0xFFFF9800),
             Color(0xFFFFFFFF),
           ],
         ShelfdTheme.batman => const [
-            Color(0xFF0A0A0A),
-            Color(0xFFE6B800),
-            Color(0xFF1C1C1C),
+            Color(0xFF16181C),
+            Color(0xFFE67E22),
+            Color(0xFF23272E),
           ],
         ShelfdTheme.darkAutumnal => const [
             Color(0xFF1A1008),
@@ -136,38 +136,38 @@ abstract final class AppThemeData {
   // Pure black background, bright yellow accent, greyscale images.
   static final AppColors highContrastColors = AppColors(
     scaffoldBg: const Color(0xFF000000),
-    cardBg: const Color(0xFF1A1A1A),
-    subtleBg: const Color(0xFF282828),
-    brandColor: const Color(0xFFFFD700),
-    avatarBg: const Color(0xFF333333),
-    primaryAccent: const Color(0xFFFFD700),
+    cardBg: const Color(0xFF202020),
+    subtleBg: const Color(0xFF2C2C2C),
+    quoteBoxBg: const Color(0xFF202020),
+    brandColor: const Color(0xFFFF9800),
+    primaryAccent: const Color(0xFFFF9800),
+    avatarBg: const Color(0xFF303030),
     textPrimary: const Color(0xFFFFFFFF),
-    textSecondary: const Color(0xFFCCCCCC),
-    textSubtle: const Color(0xFF999999),
-    textMuted: const Color(0xFFAAAAAA),
-    quoteBoxBg: const Color(0xFF282828),
+    textSecondary: const Color(0xFFD6D6D6),
+    textSubtle: const Color(0xFFC0C0C0),
+    textMuted: const Color(0xFFA8A8A8),
     isDark: true,
     bookCoverFilter: _greyscale,
     avatarFilter: _greyscale,
-  );
+    );
 
   // ── Batman (Dark) ────────────────────────────────────────────────────────────
   // Near-black with gold/amber accent.
   static final AppColors batmanColors = AppColors(
-    scaffoldBg: const Color(0xFF0A0A0A),
-    cardBg: const Color(0xFF1C1C1C),
-    subtleBg: const Color(0xFF242424),
-    brandColor: const Color(0xFFE6B800),
-    avatarBg: const Color(0xFF2A2A2A),
-    primaryAccent: const Color(0xFFE6B800),
-    textPrimary: const Color(0xFFEEEEEE),
-    textSecondary: const Color(0xFF888888),
-    textSubtle: const Color(0xFF666666),
-    textMuted: const Color(0xFF777777),
-    quoteBoxBg: const Color(0xFF242424),
+    scaffoldBg: const Color(0xFF16181C),
+    cardBg: const Color(0xFF23272E),
+    subtleBg: const Color(0xFF2F343C),
+    quoteBoxBg: const Color(0xFF23272E),
+    brandColor: const Color(0xFFE67E22),
+    primaryAccent: const Color(0xFFE67E22),
+    avatarBg: const Color(0xFF323842),
+    textPrimary: const Color(0xFFF2F4F8),
+    textSecondary: const Color(0xFFC5CBD5),
+    textSubtle: const Color(0xFFAAB2BD),
+    textMuted: const Color(0xFF8E959F),
     isDark: true,
-    avatarFilter:
-        const ColorFilter.mode(Color(0x28E6B800), BlendMode.srcATop),
+    bookCoverFilter: null,
+    avatarFilter: null,
   );
 
   // ── Dark Autumnal ────────────────────────────────────────────────────────────
@@ -227,7 +227,12 @@ abstract final class AppThemeData {
         secondary: c.brandColor,
         surface: c.cardBg,
       ),
-      cardTheme: CardThemeData(color: c.cardBg),
+      cardTheme: CardThemeData(
+        color: c.cardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: c.scaffoldBg,
         foregroundColor: c.textPrimary,
@@ -277,7 +282,6 @@ abstract final class AppThemeData {
         labelStyle: TextStyle(color: c.textPrimary),
       ),
       listTileTheme: ListTileThemeData(
-        tileColor: c.cardBg,
         textColor: c.textPrimary,
         iconColor: c.textPrimary,
       ),

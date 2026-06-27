@@ -548,7 +548,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   style: TextStyle(
                       color: Colors.red, fontWeight: FontWeight.w600)),
               subtitle: const Text('Permanently remove your account and data.',
-                  style: TextStyle(fontSize: 12)),
+                  style: TextStyle(fontSize: 12, color: Colors.black54)),
               trailing:
                   const Icon(Icons.chevron_right, color: Colors.red),
               onTap: _showDeleteAccountDialog,

@@ -63,15 +63,27 @@ class _BookLoggerAppState extends State<BookLoggerApp> {
         home: StreamBuilder<User?>(
           stream: FirebaseAuth.instance.authStateChanges(),
           builder: (context, snapshot) {
+            // Login / register screens must always render with the default
+            // theme so that a user's theme choice does not bleed into the
+            // pre-auth flow.
+            final defaultThemeData =
+                AppThemeData.themeDataFor(ShelfdTheme.defaultTheme);
+
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
+              return Theme(
+                data: defaultThemeData,
+                child: const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                ),
               );
             }
             if (snapshot.hasData) {
               return const MainNavigationScreen();
             }
-            return const LoginScreen();
+            return Theme(
+              data: defaultThemeData,
+              child: const LoginScreen(),
+            );
           },
         ),
       ),

@@ -522,8 +522,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Text(
                                   '"${_quote!.text}"',
-                                  style: const TextStyle(
-                                    color: Colors.black,
+                                  style: TextStyle(
+                                    color: c.textPrimary,
                                     fontSize: 15,
                                     height: 1.5,
                                     fontStyle: FontStyle.italic,
@@ -532,8 +532,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const SizedBox(height: 12),
                                 Text(
                                   '— ${_quote!.author}',
-                                  style: const TextStyle(
-                                    color: Colors.black,
+                                  style: TextStyle(
+                                    color: c.textPrimary,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -691,9 +691,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           subtitle,
                           maxLines: subtitleMaxLines,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: Colors.black54,
+                            color: c.textSecondary,
                           ),
                         ),
                         const Spacer(),
