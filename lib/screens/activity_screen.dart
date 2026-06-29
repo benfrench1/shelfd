@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../accessibility/accessibility_labels.dart';
 import '../theme/app_theme.dart';
@@ -36,13 +37,17 @@ class _ActivityScreenState extends State<ActivityScreen> {
   @override
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
     return Scaffold(
       backgroundColor: c.scaffoldBg,
       appBar: AppBar(
         backgroundColor: c.scaffoldBg,
         elevation: 0,
-        title: const Text('Activity',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+            'Activity',
+            style: isBatman
+                ? GoogleFonts.orbitron(fontWeight: FontWeight.bold)
+                : const TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: SafeArea(

@@ -133,7 +133,7 @@ abstract final class AppThemeData {
   );
 
   // ── High Contrast ────────────────────────────────────────────────────────────
-  // Pure black background, bright yellow accent, greyscale images.
+  // Pure black background, bright yellow accent
   static final AppColors highContrastColors = AppColors(
     scaffoldBg: const Color(0xFF000000),
     cardBg: const Color(0xFF202020),
@@ -148,7 +148,7 @@ abstract final class AppThemeData {
     textMuted: const Color(0xFFA8A8A8),
     isDark: true,
     bookCoverFilter: _greyscale,
-    avatarFilter: _greyscale,
+    avatarFilter: null,
     );
 
   // ── Batman (Dark) ────────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ abstract final class AppThemeData {
     textMuted: const Color(0xFF8E959F),
     isDark: true,
     bookCoverFilter: null,
-    avatarFilter: null,
+    avatarFilter: _greyscale,
   );
 
   // ── Dark Autumnal ────────────────────────────────────────────────────────────

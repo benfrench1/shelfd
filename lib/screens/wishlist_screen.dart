@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../accessibility/accessibility_labels.dart';
 import '../theme/app_theme.dart';
 import '../models/book.dart';
@@ -120,6 +121,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
   @override
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
     final textScale = MediaQuery.of(context).textScaleFactor;
     final isLargeText = textScale > 1.3;
 
@@ -159,7 +161,9 @@ class _WishlistScreenState extends State<WishlistScreen> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 19),
+                          style: isBatman
+                              ? GoogleFonts.orbitron(fontSize: 19)
+                              : const TextStyle(fontSize: 19),
                         ),
                       ),
                     ),
@@ -173,18 +177,21 @@ class _WishlistScreenState extends State<WishlistScreen> {
                           borderRadius: BorderRadius.circular(22),
                           onTap: () => widget.onNavigate(3),
                           child: ExcludeSemantics(
-                            child: CircleAvatar(
-                              radius: 20,
-                              backgroundColor: c.avatarBg,
-                              backgroundImage: _avatarAsset != null
-                                  ? AssetImage(_avatarAsset!) as ImageProvider
-                                  : (FirebaseAuth.instance.currentUser?.photoURL != null
-                                      ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
-                                      : null),
-                              child: _avatarAsset == null &&
-                                      FirebaseAuth.instance.currentUser?.photoURL == null
-                                  ? Icon(Icons.person, size: 20, color: c.brandColor)
-                                  : null,
+                              child: themedAvatar(
+                                colors: c,
+                                child: CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: c.avatarBg,
+                                  backgroundImage: _avatarAsset != null
+                                      ? AssetImage(_avatarAsset!) as ImageProvider
+                                      : (FirebaseAuth.instance.currentUser?.photoURL != null
+                                          ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
+                                          : null),
+                                  child: _avatarAsset == null &&
+                                          FirebaseAuth.instance.currentUser?.photoURL == null
+                                      ? Icon(Icons.person, size: 20, color: c.brandColor)
+                                      : null,
+                                ),
                             ),
                           ),
                         ),

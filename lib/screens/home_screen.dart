@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../accessibility/accessibility_labels.dart';
 import '../theme/app_theme.dart';
 import '../models/book.dart';
@@ -260,8 +261,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
     return Scaffold(
-      backgroundColor: c.scaffoldBg,
 
       body: SafeArea(
         child: SingleChildScrollView(
@@ -291,18 +292,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(22),
                       onTap: () => widget.onNavigate(3),
                       child: ExcludeSemantics(
-                        child: CircleAvatar(
-                          radius: 20,
-                          backgroundColor: c.avatarBg,
-                          backgroundImage: _avatarAsset != null
-                              ? AssetImage(_avatarAsset!) as ImageProvider
-                              : (FirebaseAuth.instance.currentUser?.photoURL != null
-                                  ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
-                                  : null),
-                          child: _avatarAsset == null &&
-                                  FirebaseAuth.instance.currentUser?.photoURL == null
-                              ? Icon(Icons.person, size: 20, color: c.brandColor)
-                              : null,
+                          child: themedAvatar(
+                            colors: c,
+                            child: CircleAvatar(
+                              radius: 20,
+                              backgroundColor: c.avatarBg,
+                              backgroundImage: _avatarAsset != null
+                                  ? AssetImage(_avatarAsset!) as ImageProvider
+                                  : (FirebaseAuth.instance.currentUser?.photoURL != null
+                                      ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
+                                      : null),
+                              child: _avatarAsset == null &&
+                                      FirebaseAuth.instance.currentUser?.photoURL == null
+                                  ? Icon(Icons.person, size: 20, color: c.brandColor)
+                                  : null,
+                            ),
                         ),
                       ),
                     ),
@@ -317,10 +321,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 header: true,
                 child: Text(
                   "Your Reading Dashboard",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: isBatman
+                      ? GoogleFonts.orbitron(
+                          fontSize: 24, fontWeight: FontWeight.bold)
+                      : const TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.bold),
                 ),
               ),
 
@@ -363,10 +368,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 header: true,
                 child: Text(
                   "Recently Rated",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: isBatman
+                      ? GoogleFonts.orbitron(
+                          fontSize: 18, fontWeight: FontWeight.bold)
+                      : const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
 
@@ -422,10 +428,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 header: true,
                 child: Text(
                   "Recommended for You",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: isBatman
+                      ? GoogleFonts.orbitron(
+                          fontSize: 18, fontWeight: FontWeight.bold)
+                      : const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
 
@@ -490,10 +497,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 header: true,
                 child: Text(
                   "Quote of the Day",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: isBatman
+                      ? GoogleFonts.orbitron(
+                          fontSize: 18, fontWeight: FontWeight.bold)
+                      : const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
 
@@ -559,12 +567,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   onPressed: () => widget.onNavigate(1),
-                  child: const Text(
+                  child: Text(
                     "Discover New Books",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
+                    style: isBatman
+                        ? GoogleFonts.orbitron(
+                            fontSize: 16, color: Colors.white)
+                        : const TextStyle(
+                            fontSize: 16, color: Colors.white),
                   ),
                 ),
               ),

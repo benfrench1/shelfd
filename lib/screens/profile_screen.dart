@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../accessibility/accessibility_labels.dart';
@@ -26,6 +27,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -54,7 +56,9 @@ class ProfileScreen extends StatelessWidget {
                         child: Text(
                           'Profile',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 19),
+                          style: isBatman
+                              ? GoogleFonts.orbitron(fontSize: 19)
+                              : const TextStyle(fontSize: 19),
                         ),
                       ),
                     ),
@@ -346,6 +350,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
   }
 
   void _showEnlargedAvatar() {
+    final c = ShelfdThemeScope.colorsOf(context);
     final user = FirebaseAuth.instance.currentUser;
     final ImageProvider? image = _avatarAsset != null
         ? AssetImage(_avatarAsset!) as ImageProvider
@@ -426,9 +431,12 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                       child: GestureDetector(
                         onTap: handleAvatarTap,
                         child: ExcludeSemantics(
-                          child: CircleAvatar(
-                            radius: 140,
-                            backgroundImage: image,
+                          child: themedAvatar(
+                            colors: c,
+                            child: CircleAvatar(
+                              radius: 140,
+                              backgroundImage: image,
+                            ),
                           ),
                         ),
                       ),
@@ -488,6 +496,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
           child: LayoutBuilder(
             builder: (context, constraints) {
+              final c = ShelfdThemeScope.colorsOf(context);
               final textScale = MediaQuery.textScalerOf(context).scale(1);
               final minAvatarExtent = (textScale > 1.2 || constraints.maxWidth < 360)
                   ? 96.0
@@ -552,8 +561,11 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                                   ? Border.all(color: Colors.green, width: 5)
                                   : Border.all(color: Colors.transparent, width: 5),
                             ),
-                            child: CircleAvatar(
-                              backgroundImage: AssetImage(asset),
+                            child: themedAvatar(
+                              colors: c,
+                              child: CircleAvatar(
+                                backgroundImage: AssetImage(asset),
+                              ),
                             ),
                           ),
                         );
@@ -591,6 +603,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
   @override
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
     final user = FirebaseAuth.instance.currentUser;
 
     return SingleChildScrollView(
@@ -615,17 +628,20 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                   child: GestureDetector(
                     onTap: _showEnlargedAvatar,
                     child: ExcludeSemantics(
-                      child: CircleAvatar(
-                        radius: 52,
-                        backgroundColor: c.avatarBg,
-                        backgroundImage: _avatarAsset != null
-                            ? AssetImage(_avatarAsset!) as ImageProvider
-                            : (user?.photoURL != null
-                                ? NetworkImage(user!.photoURL!)
-                                : null),
-                        child: _avatarAsset == null && user?.photoURL == null
-                            ? Icon(Icons.person, size: 52, color: c.brandColor)
-                            : null,
+                      child: themedAvatar(
+                        colors: c,
+                        child: CircleAvatar(
+                          radius: 52,
+                          backgroundColor: c.avatarBg,
+                          backgroundImage: _avatarAsset != null
+                              ? AssetImage(_avatarAsset!) as ImageProvider
+                              : (user?.photoURL != null
+                                  ? NetworkImage(user!.photoURL!)
+                                  : null),
+                          child: _avatarAsset == null && user?.photoURL == null
+                              ? Icon(Icons.person, size: 52, color: c.brandColor)
+                              : null,
+                        ),
                       ),
                     ),
                   ),
@@ -712,11 +728,15 @@ class _UserProfileTabState extends State<_UserProfileTab> {
               header: true,
               child: Text(
                 'Achievements',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: c.brandColor,
-                ),
+                style: isBatman
+                    ? GoogleFonts.orbitron(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: c.brandColor)
+                    : TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: c.brandColor),
               ),
             ),
           ),
@@ -744,11 +764,15 @@ class _UserProfileTabState extends State<_UserProfileTab> {
               header: true,
               child: Text(
                 'Friends',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: c.brandColor,
-                ),
+                style: isBatman
+                    ? GoogleFonts.orbitron(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: c.brandColor)
+                    : TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: c.brandColor),
               ),
             ),
           ),
@@ -772,12 +796,14 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                       const Text('👥',
                           style: TextStyle(fontSize: 32)),
                       const SizedBox(width: 16),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'View Friends',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500),
+                          style: isBatman
+                              ? GoogleFonts.orbitron(
+                                  fontSize: 16, fontWeight: FontWeight.w500)
+                              : const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w500),
                         ),
                       ),
                       if (_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount > 0) ...
@@ -817,11 +843,15 @@ class _UserProfileTabState extends State<_UserProfileTab> {
               header: true,
               child: Text(
                 'Activity',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: c.brandColor,
-                ),
+                style: isBatman
+                    ? GoogleFonts.orbitron(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: c.brandColor)
+                    : TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: c.brandColor),
               ),
             ),
           ),
@@ -870,12 +900,14 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Activity Stream',
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500),
+                        style: isBatman
+                            ? GoogleFonts.orbitron(
+                                fontSize: 16, fontWeight: FontWeight.w500)
+                            : const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w500),
                       ),
                     ),
                     if (_activityCount > 0) ...[  
@@ -1136,6 +1168,7 @@ class _StatsTabState extends State<_StatsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -1214,9 +1247,12 @@ class _StatsTabState extends State<_StatsTab> {
                 : const SizedBox.shrink(),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             "Top Authors",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: isBatman
+                ? GoogleFonts.orbitron(
+                    fontSize: 18, fontWeight: FontWeight.bold)
+                : const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           ...topAuthors.map((a) => Card(
@@ -1226,9 +1262,12 @@ class _StatsTabState extends State<_StatsTab> {
                 ),
               )),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             "Top Rated Books",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: isBatman
+                ? GoogleFonts.orbitron(
+                    fontSize: 18, fontWeight: FontWeight.bold)
+                : const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           ...topRated.map((b) => Card(
@@ -1248,9 +1287,12 @@ class _StatsTabState extends State<_StatsTab> {
                 ),
               )),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             "Stats by Year",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: isBatman
+                ? GoogleFonts.orbitron(
+                    fontSize: 18, fontWeight: FontWeight.bold)
+                : const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           ...booksByYear.map((entry) => Card(

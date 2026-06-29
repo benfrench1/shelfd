@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
@@ -323,14 +324,18 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
 
     return Scaffold(
       backgroundColor: c.scaffoldBg,
       appBar: AppBar(
         backgroundColor: c.scaffoldBg,
         elevation: 0,
-        title: const Text('Account Settings',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+            'Account Settings',
+            style: isBatman
+                ? GoogleFonts.orbitron(fontWeight: FontWeight.bold)
+                : const TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: ListView(

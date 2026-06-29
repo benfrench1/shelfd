@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../accessibility/accessibility_labels.dart';
 import '../theme/app_theme.dart';
 import '../models/book_review.dart';
@@ -294,6 +295,7 @@ class _LogScreenState extends State<LogScreen> {
   Widget _buildMonthBanner(String label) {
     return Builder(builder: (context) {
       final c = ShelfdThemeScope.colorsOf(context);
+      final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
       return Container(
         width: double.infinity,
         margin: const EdgeInsets.symmetric(vertical: 8),
@@ -307,11 +309,15 @@ class _LogScreenState extends State<LogScreen> {
           children: [
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
+              style: isBatman
+                  ? GoogleFonts.orbitron(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white)
+                  : const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white),
             ),
           ],
         ),
@@ -615,6 +621,7 @@ class _LogScreenState extends State<LogScreen> {
   @override
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
     final grouped = groupReviews();
     final textScale = MediaQuery.of(context).textScaleFactor;
     final useCompactSort = textScale > 1.2;
@@ -638,15 +645,15 @@ class _LogScreenState extends State<LogScreen> {
                       height: 18,
                       fit: BoxFit.contain,
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Reading Log',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 19,
-                        ),
+                        style: isBatman
+                            ? GoogleFonts.orbitron(fontSize: 19)
+                            : const TextStyle(fontSize: 19),
                       ),
                     ),
                     if (useCompactSort)
@@ -698,10 +705,11 @@ class _LogScreenState extends State<LogScreen> {
                       children: [
                         Text(
                           'Total books: ${reviews.length}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: isBatman
+                              ? GoogleFonts.orbitron(
+                                  fontSize: 18, fontWeight: FontWeight.bold)
+                              : const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 12),
                         if (sortOption == 'date')

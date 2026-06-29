@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../accessibility/accessibility_labels.dart';
@@ -554,13 +555,17 @@ class _FriendsScreenState extends State<FriendsScreen> {
   @override
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
     return Scaffold(
       backgroundColor: c.scaffoldBg,
       appBar: AppBar(
         backgroundColor: c.scaffoldBg,
         elevation: 0,
-        title: const Text('Friends',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+            'Friends',
+            style: isBatman
+                ? GoogleFonts.orbitron(fontWeight: FontWeight.bold)
+                : const TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
           Stack(

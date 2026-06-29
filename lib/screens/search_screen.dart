@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../accessibility/accessibility_labels.dart';
 import '../theme/app_theme.dart';
@@ -192,6 +193,7 @@ class _SearchScreenState
   @override
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
     return Scaffold(
       backgroundColor: c.scaffoldBg,
 
@@ -222,18 +224,21 @@ class _SearchScreenState
                           borderRadius: BorderRadius.circular(22),
                           onTap: () => widget.onNavigate(3),
                           child: ExcludeSemantics(
-                            child: CircleAvatar(
-                              radius: 20,
-                              backgroundColor: c.avatarBg,
-                              backgroundImage: _avatarAsset != null
-                                  ? AssetImage(_avatarAsset!) as ImageProvider
-                                  : (FirebaseAuth.instance.currentUser?.photoURL != null
-                                      ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
-                                      : null),
-                              child: _avatarAsset == null &&
-                                      FirebaseAuth.instance.currentUser?.photoURL == null
-                                  ? Icon(Icons.person, size: 20, color: c.brandColor)
-                                  : null,
+                              child: themedAvatar(
+                                colors: c,
+                                child: CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: c.avatarBg,
+                                  backgroundImage: _avatarAsset != null
+                                      ? AssetImage(_avatarAsset!) as ImageProvider
+                                      : (FirebaseAuth.instance.currentUser?.photoURL != null
+                                          ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
+                                          : null),
+                                  child: _avatarAsset == null &&
+                                          FirebaseAuth.instance.currentUser?.photoURL == null
+                                      ? Icon(Icons.person, size: 20, color: c.brandColor)
+                                      : null,
+                                ),
                             ),
                           ),
                         ),
@@ -289,9 +294,13 @@ class _SearchScreenState
                         ),
                       ),
                       onPressed: search,
-                      child: const Text(
+                      child: Text(
                         "Search",
-                        style: TextStyle(color: Colors.white, fontSize: 15),
+                        style: isBatman
+                            ? GoogleFonts.orbitron(
+                                color: Colors.white, fontSize: 15)
+                            : const TextStyle(
+                                color: Colors.white, fontSize: 15),
                       ),
                     ),
                   ),
