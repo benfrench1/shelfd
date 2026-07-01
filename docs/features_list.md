@@ -51,3 +51,10 @@
 
 - Data Storage and Persistence
   - Leveraging Firebase
+
+- Account Setting
+  - Ability to change users password
+  - Ability to change users visible username
+  - Ability to modify the Profile Privacy setting (Public, Friends Only, Private)
+  - Ablity to change the app theme (Default, High Contrast, Batman, Dark Autumnal)
+  - User can also sign out and delete account here

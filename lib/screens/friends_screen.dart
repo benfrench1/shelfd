@@ -556,6 +556,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
     final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
     return Scaffold(
       backgroundColor: c.scaffoldBg,
       appBar: AppBar(
@@ -611,6 +618,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
         children: [
           // ── Search card ──────────────────────────────────────
           Card(
+            shape: hcShape,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -722,6 +730,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
           const SizedBox(height: 8),
           if (_friends.isEmpty)
             Card(
+              shape: hcShape,
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Text(
@@ -738,6 +747,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   _newlyReceivedAccepted.any((r) => r.id == req.id) ||
                   _justAcceptedByMeIds.contains(req.id);
               return Card(
+                shape: hcShape,
                 child: ListTile(
                   leading: _buildAvatarCircle(
                     _profileCache[req.otherUid(_myUid)],
@@ -789,6 +799,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             ..._pendingSent.map((req) => Card(
+                  shape: hcShape,
                   child: InkWell(
                     onTap: () => _viewProfile(req.otherUid(_myUid)),
                     borderRadius: BorderRadius.circular(12),

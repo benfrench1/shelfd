@@ -470,18 +470,18 @@ class _ReviewScreenState extends State<ReviewScreen> {
                           child: ExcludeSemantics(
                             child: Text(
                               '${_globalRating!.toStringAsFixed(1)} / 5 ★  |  ${_formatCount(_globalRatingsCount ?? 0)} ratings  ($_globalRatingSource)',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.black54,
+                                color: c.textSecondary,
                               ),
                             ),
                           ),
                         )
-                      : const Text(
+                      : Text(
                           'Global rating not available',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.black54,
+                            color: c.textSecondary,
                           ),
                         ),
             ),

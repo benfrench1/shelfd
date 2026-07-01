@@ -604,6 +604,13 @@ class _UserProfileTabState extends State<_UserProfileTab> {
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
     final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
     final user = FirebaseAuth.instance.currentUser;
 
     return SingleChildScrollView(
@@ -678,6 +685,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
           // Username card (only shown if set)
           if (_username?.isNotEmpty == true) ...[  
             Card(
+              shape: hcShape,
               child: ListTile(
                 leading: const Icon(Icons.person_outline),
                 title: const Text('Username',
@@ -710,6 +718,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
 
           // Email card
           Card(
+            shape: hcShape,
             child: ListTile(
               leading: const Icon(Icons.email_outlined),
               title: const Text('Email', style: TextStyle(fontSize: 13, color: Colors.grey)),
@@ -783,6 +792,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
             hint: 'Opens your friends screen',
             excludeSemantics: true,
             child: Card(
+              shape: hcShape,
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () => Navigator.of(context).push(
@@ -857,6 +867,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
           ),
           const SizedBox(height: 12),
           Card(
+            shape: hcShape,
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () => Navigator.of(context).push(
@@ -1169,12 +1180,21 @@ class _StatsTabState extends State<_StatsTab> {
   @override
   Widget build(BuildContext context) {
     final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Card(
+            shape: hcShape,
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () => setState(() => _booksExpanded = !_booksExpanded),
@@ -1208,6 +1228,7 @@ class _StatsTabState extends State<_StatsTab> {
                       const SizedBox(height: 8),
                       Card(
                         margin: const EdgeInsets.symmetric(vertical: 3),
+                        shape: hcShape,
                         child: ListTile(
                           dense: true,
                           leading: const Icon(Icons.menu_book, size: 20),
@@ -1220,6 +1241,7 @@ class _StatsTabState extends State<_StatsTab> {
                       ),
                       Card(
                         margin: const EdgeInsets.symmetric(vertical: 3),
+                        shape: hcShape,
                         child: ListTile(
                           dense: true,
                           leading: const Icon(Icons.headphones, size: 20),
@@ -1232,6 +1254,7 @@ class _StatsTabState extends State<_StatsTab> {
                       ),
                       Card(
                         margin: const EdgeInsets.symmetric(vertical: 3),
+                        shape: hcShape,
                         child: ListTile(
                           dense: true,
                           leading: const Icon(Icons.grain, size: 20),
@@ -1256,6 +1279,7 @@ class _StatsTabState extends State<_StatsTab> {
           ),
           const SizedBox(height: 10),
           ...topAuthors.map((a) => Card(
+                shape: hcShape,
                 child: ListTile(
                   title: Text(a.key),
                   trailing: Text("${a.value} books"),
@@ -1274,6 +1298,7 @@ class _StatsTabState extends State<_StatsTab> {
                 color: b.isFavourite
                     ? Colors.amber.withOpacity(0.15)
                     : null,
+                shape: hcShape,
                 child: ListTile(
                   title: Text(b.title),
                   subtitle: Text(b.author),
@@ -1296,6 +1321,7 @@ class _StatsTabState extends State<_StatsTab> {
           ),
           const SizedBox(height: 10),
           ...booksByYear.map((entry) => Card(
+                shape: hcShape,
                 child: ListTile(
                   leading: const Icon(Icons.calendar_today),
                   title: Text(entry.key.toString()),

@@ -125,7 +125,7 @@ abstract final class AppThemeData {
     avatarBg: const Color(0xff5C3A1E).withValues(alpha: 0.15),
     primaryAccent: const Color(0xFFFF5722), // Colors.deepOrange
     textPrimary: const Color(0xDD000000), // Colors.black87
-    textSecondary: const Color(0xFF9E9E9E), // Colors.grey
+    textSecondary: const Color(0x8A000000), // Colors.black54
     textSubtle: const Color(0x61000000), // Colors.black38
     textMuted: const Color(0x73000000), // Colors.black45
     quoteBoxBg: const Color(0xffd6d9d6), // original quote box colour

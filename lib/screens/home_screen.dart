@@ -262,6 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
     final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
     return Scaffold(
 
       body: SafeArea(
@@ -523,6 +524,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           decoration: BoxDecoration(
                             color: c.quoteBoxBg,
                             borderRadius: BorderRadius.circular(16),
+                            border: isHighContrast
+                                ? Border.all(color: c.brandColor, width: 2.0)
+                                : null,
                           ),
                           child: ExcludeSemantics(
                             child: Column(
@@ -597,6 +601,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final c = ShelfdThemeScope.colorsOf(context);
+        final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
         // Adjust card width and text wrapping based on text scale factor
         final textScale = MediaQuery.of(context).textScaleFactor;
         final isLargeText = textScale > 1.5;
@@ -615,6 +620,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? Colors.amber.withValues(alpha: 0.15)
                 : c.cardBg,
             borderRadius: BorderRadius.circular(14),
+            border: isHighContrast
+                ? Border.all(color: c.brandColor, width: 2.0)
+                : null,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.06),
@@ -731,12 +739,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _emptyCard(String message) {
     return Builder(builder: (context) {
       final c = ShelfdThemeScope.colorsOf(context);
+      final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: c.cardBg,
           borderRadius: BorderRadius.circular(12),
+          border: isHighContrast
+              ? Border.all(color: c.brandColor, width: 2.0)
+              : null,
         ),
         child: Text(
           message,

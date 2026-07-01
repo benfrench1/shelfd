@@ -122,6 +122,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
     final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
     final textScale = MediaQuery.of(context).textScaleFactor;
     final isLargeText = textScale > 1.3;
 
@@ -260,6 +261,12 @@ class _WishlistScreenState extends State<WishlistScreen> {
                     onLongPress: () => _showOptions(book),
                     child: Card(
                       margin: const EdgeInsets.symmetric(vertical: 6),
+                      shape: isHighContrast
+                          ? RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: c.brandColor, width: 2.0),
+                            )
+                          : null,
                       child: ListTile(
                         contentPadding: const EdgeInsets.all(12),
                         leading: coverUrl != null

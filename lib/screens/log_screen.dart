@@ -505,6 +505,8 @@ class _LogScreenState extends State<LogScreen> {
   }
 
   Widget buildCard(BookReview review) {
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
     final coverUrl = getCoverUrl(review.coverId);
     final ratingText = review.rating % 1 == 0
         ? review.rating.toInt().toString()
@@ -522,6 +524,12 @@ class _LogScreenState extends State<LogScreen> {
             ? Colors.amber.withOpacity(0.15)
             : null,
         margin: const EdgeInsets.symmetric(vertical: 6),
+        shape: isHighContrast
+            ? RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: c.brandColor, width: 2.0),
+              )
+            : null,
         child: ExpansionTile(
           leading: SizedBox(
             width: 50,

@@ -132,6 +132,7 @@ class _ActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
     final seen = data['seen'] as bool? ?? false;
     final isPrivate = data['reactorIsPrivate'] as bool? ?? false;
     final isFriend = data['reactorIsFriend'] as bool? ?? false;
@@ -165,13 +166,15 @@ class _ActivityCard extends StatelessWidget {
         label: '$actorName reacted to your review of $bookTitle. Reactions: $reactionSummary.${seen ? '' : ' New activity.'}',
         child: ExcludeSemantics(
           child: Card(
-            color: seen ? null : c.primaryAccent.withValues(alpha: 0.07),
+            color: seen ? null : (c.isDark ? c.primaryAccent.withValues(alpha: 0.18) : const Color(0xffFFF8F2)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
-              side: seen
-                  ? BorderSide.none
-                  : BorderSide(
-                      color: c.primaryAccent.withValues(alpha: 0.25), width: 1),
+              side: isHighContrast
+                  ? BorderSide(color: c.brandColor, width: 2.0)
+                  : seen
+                      ? BorderSide.none
+                      : BorderSide(
+                          color: c.primaryAccent.withValues(alpha: 0.25), width: 1),
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

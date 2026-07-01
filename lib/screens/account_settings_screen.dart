@@ -325,6 +325,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     final user = FirebaseAuth.instance.currentUser;
     final c = ShelfdThemeScope.colorsOf(context);
     final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
 
     return Scaffold(
       backgroundColor: c.scaffoldBg,
@@ -342,8 +349,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         padding: const EdgeInsets.all(24),
         children: [
           // ── Email ──────────────────────────────────────────────────
-          Card(
-            child: ListTile(
+          Card(            shape: hcShape,            child: ListTile(
               leading: const Icon(Icons.email_outlined),
               title: const Text('Email',
                   style: TextStyle(fontSize: 13, color: Colors.grey)),
@@ -358,6 +364,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           const SizedBox(height: 8),
           // ── Email verified ───────────────────────────────────
           Card(
+            shape: hcShape,
             child: ListTile(
               leading: Icon(
                 user?.emailVerified == true
@@ -381,6 +388,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           // ── Change Password (email users only) ─────────────────────
           if (!_isGoogleUser) ...[
             Card(
+              shape: hcShape,
               child: ListTile(
                 leading: const Icon(Icons.lock_outlined),
                 title: const Text('Change Password'),
@@ -393,6 +401,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
           if (_isGoogleUser) ...[
             Card(
+              shape: hcShape,
               child: ListTile(
                 leading: Image.asset('assets/images/g_google_logo_account_settings.png',
                   height: 20, width: 20, excludeFromSemantics: true),
@@ -406,8 +415,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ],
 
           // ── Username ───────────────────────────────────────────────
-          Card(
-            child: ListTile(
+          Card(            shape: hcShape,            child: ListTile(
               leading: const Icon(Icons.person_outline),
               title: const Text('Username',
                   style: TextStyle(fontSize: 13, color: Colors.grey)),
@@ -432,8 +440,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           const SizedBox(height: 8),
 
           // ── Privacy ────────────────────────────────────────────────
-          Card(
-            child: ListTile(
+          Card(            shape: hcShape,            child: ListTile(
               leading: Icon(
                 _privacyLevel == PrivacyLevel.public
                     ? Icons.public
@@ -456,8 +463,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           const SizedBox(height: 8),
 
           // ── Theme ──────────────────────────────────────────────────
-          Card(
-            child: ListTile(
+          Card(            shape: hcShape,            child: ListTile(
               leading: const Icon(Icons.palette_outlined),
               title: const Text('Theme',
                   style: TextStyle(fontSize: 13, color: Colors.grey)),

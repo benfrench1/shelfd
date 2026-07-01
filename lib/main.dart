@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -24,28 +25,56 @@ class BookLoggerApp extends StatefulWidget {
 
 class _BookLoggerAppState extends State<BookLoggerApp> {
   ShelfdTheme _theme = ShelfdTheme.defaultTheme;
+  StreamSubscription<User?>? _authSub;
 
   @override
   void initState() {
     super.initState();
     _loadTheme();
+    _authSub = FirebaseAuth.instance.authStateChanges().listen(_onAuthChanged);
   }
 
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
+  }
+
+  String _themeKey(String uid) => 'shelfd_theme_$uid';
+
   Future<void> _loadTheme() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (mounted) setState(() => _theme = ShelfdTheme.defaultTheme);
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('shelfd_theme');
-    if (saved != null && mounted) {
-      final t = ShelfdTheme.values.firstWhere(
-        (v) => v.name == saved,
-        orElse: () => ShelfdTheme.defaultTheme,
-      );
+    final saved = prefs.getString(_themeKey(user.uid));
+    if (mounted) {
+      final t = saved != null
+          ? ShelfdTheme.values.firstWhere(
+              (v) => v.name == saved,
+              orElse: () => ShelfdTheme.defaultTheme,
+            )
+          : ShelfdTheme.defaultTheme;
       setState(() => _theme = t);
     }
   }
 
+  void _onAuthChanged(User? user) {
+    if (user == null) {
+      if (mounted) setState(() => _theme = ShelfdTheme.defaultTheme);
+    } else {
+      _loadTheme();
+    }
+  }
+
   void _onThemeChanged(ShelfdTheme t) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('shelfd_theme', t.name);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_themeKey(user.uid), t.name);
+    }
     if (mounted) setState(() => _theme = t);
   }
 
