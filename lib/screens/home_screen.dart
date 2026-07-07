@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../accessibility/accessibility_labels.dart';
+import '../theme/app_theme.dart';
 import '../models/book.dart';
 import '../models/book_review.dart';
 import '../models/literary_quiz_question.dart';
@@ -258,8 +260,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
     return Scaffold(
-      backgroundColor: const Color(0xffF5F2ED),
 
       body: SafeArea(
         child: SingleChildScrollView(
@@ -289,18 +293,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(22),
                       onTap: () => widget.onNavigate(3),
                       child: ExcludeSemantics(
-                        child: CircleAvatar(
-                          radius: 20,
-                          backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
-                          backgroundImage: _avatarAsset != null
-                              ? AssetImage(_avatarAsset!) as ImageProvider
-                              : (FirebaseAuth.instance.currentUser?.photoURL != null
-                                  ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
-                                  : null),
-                          child: _avatarAsset == null &&
-                                  FirebaseAuth.instance.currentUser?.photoURL == null
-                              ? const Icon(Icons.person, size: 20, color: Color(0xff5C3A1E))
-                              : null,
+                          child: themedAvatar(
+                            colors: c,
+                            child: CircleAvatar(
+                              radius: 20,
+                              backgroundColor: c.avatarBg,
+                              backgroundImage: _avatarAsset != null
+                                  ? AssetImage(_avatarAsset!) as ImageProvider
+                                  : (FirebaseAuth.instance.currentUser?.photoURL != null
+                                      ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
+                                      : null),
+                              child: _avatarAsset == null &&
+                                      FirebaseAuth.instance.currentUser?.photoURL == null
+                                  ? Icon(Icons.person, size: 20, color: c.brandColor)
+                                  : null,
+                            ),
                         ),
                       ),
                     ),
@@ -315,10 +322,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 header: true,
                 child: Text(
                   "Your Reading Dashboard",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: isBatman
+                      ? GoogleFonts.orbitron(
+                          fontSize: 24, fontWeight: FontWeight.bold)
+                      : const TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.bold),
                 ),
               ),
 
@@ -338,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: c.cardBg,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const TextField(
@@ -361,10 +369,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 header: true,
                 child: Text(
                   "Recently Rated",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: isBatman
+                      ? GoogleFonts.orbitron(
+                          fontSize: 18, fontWeight: FontWeight.bold)
+                      : const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
 
@@ -420,10 +429,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 header: true,
                 child: Text(
                   "Recommended for You",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: isBatman
+                      ? GoogleFonts.orbitron(
+                          fontSize: 18, fontWeight: FontWeight.bold)
+                      : const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
 
@@ -488,10 +498,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 header: true,
                 child: Text(
                   "Quote of the Day",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: isBatman
+                      ? GoogleFonts.orbitron(
+                          fontSize: 18, fontWeight: FontWeight.bold)
+                      : const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
 
@@ -511,8 +522,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: const Color(0xffd6d9d6),
+                            color: c.quoteBoxBg,
                             borderRadius: BorderRadius.circular(16),
+                            border: isHighContrast
+                                ? Border.all(color: c.brandColor, width: 2.0)
+                                : null,
                           ),
                           child: ExcludeSemantics(
                             child: Column(
@@ -520,8 +534,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Text(
                                   '"${_quote!.text}"',
-                                  style: const TextStyle(
-                                    color: Colors.black,
+                                  style: TextStyle(
+                                    color: c.textPrimary,
                                     fontSize: 15,
                                     height: 1.5,
                                     fontStyle: FontStyle.italic,
@@ -530,8 +544,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const SizedBox(height: 12),
                                 Text(
                                   '— ${_quote!.author}',
-                                  style: const TextStyle(
-                                    color: Colors.black,
+                                  style: TextStyle(
+                                    color: c.textPrimary,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -550,19 +564,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepOrange,
+                    backgroundColor: c.primaryAccent,
                     padding: const EdgeInsets.all(16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   onPressed: () => widget.onNavigate(1),
-                  child: const Text(
+                  child: Text(
                     "Discover New Books",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
+                    style: isBatman
+                        ? GoogleFonts.orbitron(
+                            fontSize: 16, color: Colors.white)
+                        : const TextStyle(
+                            fontSize: 16, color: Colors.white),
                   ),
                 ),
               ),
@@ -585,6 +600,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final c = ShelfdThemeScope.colorsOf(context);
+        final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
         // Adjust card width and text wrapping based on text scale factor
         final textScale = MediaQuery.of(context).textScaleFactor;
         final isLargeText = textScale > 1.5;
@@ -600,9 +617,12 @@ class _HomeScreenState extends State<HomeScreen> {
           width: cardWidth,
           decoration: BoxDecoration(
             color: isFavourite
-                ? Colors.amber.withOpacity(0.15)
-                : Colors.white,
+                ? Colors.amber.withValues(alpha: 0.15)
+                : c.cardBg,
             borderRadius: BorderRadius.circular(14),
+            border: isHighContrast
+                ? Border.all(color: c.brandColor, width: 2.0)
+                : null,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.06),
@@ -629,16 +649,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         errorBuilder: (_, __, ___) => Container(
                               height: coverHeight,
                               width: double.infinity,
-                              color: Colors.grey.shade200,
-                              child: const Center(
-                                child: Icon(Icons.book, size: 40, color: Colors.grey),
+                                color: c.subtleBg,
+                                child: const Center(
+                                  child: Icon(Icons.book, size: 40, color: Colors.grey),
+                                ),
                               ),
-                            ),
                           )
                         : Container(
                             height: coverHeight,
                             width: double.infinity,
-                            color: Colors.grey.shade200,
+                            color: c.subtleBg,
                             child: const Center(
                               child: Icon(
                                 Icons.book,
@@ -688,9 +708,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           subtitle,
                           maxLines: subtitleMaxLines,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: Colors.black54,
+                            color: c.textSecondary,
                           ),
                         ),
                         const Spacer(),
@@ -717,22 +737,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _emptyCard(String message) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        message,
-        style: const TextStyle(
-          color: Colors.black45,
-          fontSize: 14,
+    return Builder(builder: (context) {
+      final c = ShelfdThemeScope.colorsOf(context);
+      final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: c.cardBg,
+          borderRadius: BorderRadius.circular(12),
+          border: isHighContrast
+              ? Border.all(color: c.brandColor, width: 2.0)
+              : null,
         ),
-        textAlign: TextAlign.center,
-      ),
-    );
+        child: Text(
+          message,
+          style: TextStyle(
+            color: c.textMuted,
+            fontSize: 14,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    });
   }
 }
 
@@ -802,6 +829,7 @@ class _LiteraryQuizDialogState extends State<_LiteraryQuizDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     final maxContentHeight = MediaQuery.of(context).size.height * 0.55;
 
     return AlertDialog(
@@ -858,7 +886,7 @@ class _LiteraryQuizDialogState extends State<_LiteraryQuizDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.deepOrange,
+            backgroundColor: c.primaryAccent,
             foregroundColor: Colors.white,
           ),
           onPressed: _answered ? _goNext : null,

@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../accessibility/accessibility_labels.dart';
+import '../theme/app_theme.dart';
 import '../models/book_review.dart';
 import '../models/book.dart';
 import '../models/user_profile.dart';
@@ -78,6 +80,7 @@ class _ExpandableReviewTextState extends State<_ExpandableReviewText> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
+      final c = ShelfdThemeScope.colorsOf(context);
       final span = TextSpan(
           text: widget.text, style: const TextStyle(fontSize: 14));
       final tp = TextPainter(
@@ -136,13 +139,13 @@ class _ExpandableReviewTextState extends State<_ExpandableReviewText> {
                         horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       border: Border.all(
-                          color: Colors.deepOrange, width: 1.2),
+                          color: c.primaryAccent, width: 1.2),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Read all',
                       style: TextStyle(
-                        color: Colors.deepOrange,
+                        color: c.primaryAccent,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
@@ -290,28 +293,36 @@ class _LogScreenState extends State<LogScreen> {
   }
 
   Widget _buildMonthBanner(String label) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.deepOrange,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.deepOrange.shade700),
-      ),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: Color(0xffF6EFE6),
+    return Builder(builder: (context) {
+      final c = ShelfdThemeScope.colorsOf(context);
+      final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: c.primaryAccent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: c.primaryAccent),
+        ),
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: isBatman
+                  ? GoogleFonts.orbitron(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white)
+                  : const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 
   void showOptions(BookReview review) {
@@ -376,35 +387,38 @@ class _LogScreenState extends State<LogScreen> {
     final activeEmojis =
         _kReactionEmojis.where((e) => (counts[e] ?? 0) > 0).toList();
     if (activeEmojis.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        children: activeEmojis.map((emoji) {
-          return Semantics(
-            button: true,
-            label: '${emojiSemanticLabel(emoji)} reaction, ${counts[emoji]}',
-            hint: 'Shows who reacted',
-            child: GestureDetector(
-              onTap: () => _showReactorSheet(reviewId, emoji),
-              child: ExcludeSemantics(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.deepOrange, width: 2),
+    return Builder(builder: (bCtx) {
+      final c = ShelfdThemeScope.colorsOf(bCtx);
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        child: Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: activeEmojis.map((emoji) {
+            return Semantics(
+              button: true,
+              label: '${emojiSemanticLabel(emoji)} reaction, ${counts[emoji]}',
+              hint: 'Shows who reacted',
+              child: GestureDetector(
+                onTap: () => _showReactorSheet(reviewId, emoji),
+                child: ExcludeSemantics(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: c.primaryAccent.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: c.primaryAccent, width: 2),
+                    ),
+                    child: Text('$emoji ${counts[emoji]}',
+                        style: const TextStyle(fontSize: 14)),
                   ),
-                  child: Text('$emoji ${counts[emoji]}',
-                      style: const TextStyle(fontSize: 14)),
                 ),
               ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
+            );
+          }).toList(),
+        ),
+      );
+    });
   }
 
   void _showReactorSheet(String reviewId, String emoji) {
@@ -491,6 +505,8 @@ class _LogScreenState extends State<LogScreen> {
   }
 
   Widget buildCard(BookReview review) {
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
     final coverUrl = getCoverUrl(review.coverId);
     final ratingText = review.rating % 1 == 0
         ? review.rating.toInt().toString()
@@ -508,6 +524,12 @@ class _LogScreenState extends State<LogScreen> {
             ? Colors.amber.withOpacity(0.15)
             : null,
         margin: const EdgeInsets.symmetric(vertical: 6),
+        shape: isHighContrast
+            ? RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: c.brandColor, width: 2.0),
+              )
+            : null,
         child: ExpansionTile(
           leading: SizedBox(
             width: 50,
@@ -606,12 +628,14 @@ class _LogScreenState extends State<LogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
     final grouped = groupReviews();
     final textScale = MediaQuery.of(context).textScaleFactor;
     final useCompactSort = textScale > 1.2;
 
     return Scaffold(
-      backgroundColor: const Color(0xffF5F2ED),
+      backgroundColor: c.scaffoldBg,
       body: SafeArea(
         child: Column(
           children: [
@@ -629,15 +653,15 @@ class _LogScreenState extends State<LogScreen> {
                       height: 18,
                       fit: BoxFit.contain,
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Reading Log',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 19,
-                        ),
+                        style: isBatman
+                            ? GoogleFonts.orbitron(fontSize: 19)
+                            : const TextStyle(fontSize: 19),
                       ),
                     ),
                     if (useCompactSort)
@@ -689,10 +713,11 @@ class _LogScreenState extends State<LogScreen> {
                       children: [
                         Text(
                           'Total books: ${reviews.length}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: isBatman
+                              ? GoogleFonts.orbitron(
+                                  fontSize: 18, fontWeight: FontWeight.bold)
+                              : const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 12),
                         if (sortOption == 'date')
@@ -717,10 +742,10 @@ class _LogScreenState extends State<LogScreen> {
                                   padding: const EdgeInsets.only(top: 12, bottom: 4),
                                   child: Text(
                                     review.author,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xff5C3A1E),
+                                      color: c.brandColor,
                                     ),
                                   ),
                                 ),
@@ -854,7 +879,8 @@ class _ReactorSheetState extends State<_ReactorSheet> {
                         controller: scrollController,
                         padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                         itemCount: _entries!.length,
-                        itemBuilder: (_, i) {
+                        itemBuilder: (ctx, i) {
+                          final c = ShelfdThemeScope.colorsOf(ctx);
                           final e = _entries![i];
                           final ImageProvider? avatar = e.avatarAsset != null
                               ? AssetImage(e.avatarAsset!) as ImageProvider
@@ -872,12 +898,12 @@ class _ReactorSheetState extends State<_ReactorSheet> {
                                   )
                                 : CircleAvatar(
                                     backgroundColor:
-                                        const Color(0xff5C3A1E).withOpacity(0.12),
+                                        c.avatarBg,
                                     backgroundImage: avatar,
                                     child: avatar == null
                                         ? Icon(Icons.person,
                                             size: 20,
-                                            color: const Color(0xff5C3A1E))
+                                            color: c.brandColor)
                                         : null,
                                   ),
                             title: Text(
@@ -893,16 +919,16 @@ class _ReactorSheetState extends State<_ReactorSheet> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: Colors.deepOrange.withOpacity(0.1),
+                                      color: c.primaryAccent.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(
-                                          color: Colors.deepOrange.withOpacity(0.4)),
+                                          color: c.primaryAccent.withValues(alpha: 0.4)),
                                     ),
-                                    child: const Text(
+                                    child: Text(
                                       'Friend',
                                       style: TextStyle(
                                           fontSize: 11,
-                                          color: Colors.deepOrange,
+                                          color: c.primaryAccent,
                                           fontWeight: FontWeight.w600),
                                     ),
                                   )

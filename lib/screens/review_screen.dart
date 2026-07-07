@@ -6,6 +6,7 @@ import '../models/book.dart';
 import '../models/book_review.dart';
 import '../services/storage_service.dart';
 import '../services/wishlist_service.dart';
+import '../theme/app_theme.dart';
 
 class ReviewScreen extends StatefulWidget {
   final Book book;
@@ -334,11 +335,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final book = widget.book;
+    final c = ShelfdThemeScope.colorsOf(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xffF5F2ED),
+      backgroundColor: c.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xffF5F2ED),
+        backgroundColor: c.scaffoldBg,
         elevation: 0,
         title: Text(
           widget.reviewIndex != null ? "Edit Review" : "Review Book",
@@ -350,7 +352,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
               tooltip: _isWishlisted ? 'Remove from Future Reads' : 'Add to Future Reads',
               icon: Icon(
                 _isWishlisted ? Icons.bookmark_added : Icons.bookmark_add_outlined,
-                color: Colors.deepOrange,
+                color: c.primaryAccent,
               ),
               onPressed: () async {
                 if (_isWishlisted) {
@@ -468,18 +470,18 @@ class _ReviewScreenState extends State<ReviewScreen> {
                           child: ExcludeSemantics(
                             child: Text(
                               '${_globalRating!.toStringAsFixed(1)} / 5 ★  |  ${_formatCount(_globalRatingsCount ?? 0)} ratings  ($_globalRatingSource)',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.black54,
+                                color: c.textSecondary,
                               ),
                             ),
                           ),
                         )
-                      : const Text(
+                      : Text(
                           'Global rating not available',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.black54,
+                            color: c.textSecondary,
                           ),
                         ),
             ),
@@ -488,7 +490,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
             // Rating & comment card
             Card(
-              color: const Color(0xffD9D4CB),
+              color: c.subtleBg,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -530,12 +532,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                 children: [
                                   SliderTheme(
                                     data: SliderTheme.of(context).copyWith(
-                                      activeTrackColor: Colors.deepOrange,
+                                      activeTrackColor: c.primaryAccent,
                                       inactiveTrackColor:
-                                          Colors.deepOrange.withOpacity(0.25),
-                                      thumbColor: Colors.deepOrange,
+                                          c.primaryAccent.withValues(alpha: 0.25),
+                                      thumbColor: c.primaryAccent,
                                       overlayColor:
-                                          Colors.deepOrange.withOpacity(0.15),
+                                          c.primaryAccent.withValues(alpha: 0.15),
                                       overlayShape: const RoundSliderOverlayShape(
                                           overlayRadius: 12),
                                       showValueIndicator: ShowValueIndicator.never,
@@ -560,7 +562,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
-                                        color: Colors.deepOrange,
+                                        color: c.primaryAccent,
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
@@ -604,11 +606,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       maxLines: 3,
                       textCapitalization: TextCapitalization.sentences,
                       spellCheckConfiguration: const SpellCheckConfiguration(),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: "Comment",
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                         filled: true,
-                        fillColor: Color(0xffF5F2ED),
+                        fillColor: c.scaffoldBg,
                       ),
                     ),
                   ],
@@ -657,7 +659,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
+                  backgroundColor: c.primaryAccent,
                   padding: const EdgeInsets.all(16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -696,14 +698,15 @@ class _RatingStepButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     return GestureDetector(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2),
         child: Text(
           label,
-          style: const TextStyle(
-            color: Colors.deepOrange,
+          style: TextStyle(
+            color: c.primaryAccent,
             fontSize: 32,
             fontWeight: FontWeight.bold,
             height: 1.0,

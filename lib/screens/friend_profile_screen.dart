@@ -9,6 +9,7 @@ import '../services/friend_service.dart';
 import '../services/reaction_service.dart';
 import '../services/activity_stream_service.dart';
 import '../services/wishlist_service.dart';
+import '../theme/app_theme.dart';
 
 const _kReactionEmojis = ['❤️', '🔥', '😂', '🥹', '🤙', '🫶'];
 
@@ -113,15 +114,16 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     final friend = widget.friend;
     final reviews = _reviews;
 
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: const Color(0xffF5F2ED),
+        backgroundColor: c.scaffoldBg,
         appBar: AppBar(
-          backgroundColor: const Color(0xffF5F2ED),
+          backgroundColor: c.scaffoldBg,
           elevation: 0,
           title: Text(
             friend.displayName,
@@ -299,6 +301,15 @@ class _OverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isHighContrast =
+        ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
     final bookCount = reviews.length;
 
     // Avatar — asset or network photo
@@ -356,11 +367,11 @@ class _OverviewTab extends StatelessWidget {
                 child: CircleAvatar(
                   radius: 52,
                   backgroundColor:
-                      const Color(0xff5C3A1E).withOpacity(0.15),
+                      c.avatarBg,
                   backgroundImage: avatarImage,
                   child: avatarImage == null
-                      ? const Icon(Icons.person,
-                          size: 52, color: Color(0xff5C3A1E))
+                      ? Icon(Icons.person,
+                          size: 52, color: c.brandColor)
                       : null,
                 ),
               ),
@@ -390,6 +401,7 @@ class _OverviewTab extends StatelessWidget {
           // Username card
           if (friend.username?.isNotEmpty == true) ...[
             Card(
+              shape: hcShape,
               child: ListTile(
                 leading: const Icon(Icons.person_outline),
                 title: const Text('Username',
@@ -413,14 +425,14 @@ class _OverviewTab extends StatelessWidget {
 
           // ── Achievements ──────────────────────────────────────
           const SizedBox(height: 32),
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
             child: Text(
               'Achievements',
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xff5C3A1E)),
+                  color: c.brandColor),
             ),
           ),
           const SizedBox(height: 16),
@@ -461,22 +473,22 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
   final Map<String, ({Map<String, int> counts, List<String> mine})>
       _reactions = {};
 
-  Widget _buildMonthBanner(String label) {
+  Widget _buildMonthBanner(String label, AppColors c) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xff6A4A2F),
+        color: c.brandColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xff8A6648)),
+        border: Border.all(color: c.brandColor.withValues(alpha: 0.7)),
       ),
       child: Text(
         label,
         style: const TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w700,
-          color: Color(0xffF6EFE6),
+          color: Colors.white,
         ),
       ),
     );
@@ -542,6 +554,7 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setSheet) {
+          final c = ShelfdThemeScope.colorsOf(ctx);
           final mine = _reactions[reviewId]?.mine ?? [];
           final atMax = mine.length >= 3;
           return SafeArea(
@@ -588,12 +601,12 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
                                   height: 52,
                                   decoration: BoxDecoration(
                                     color: selected
-                                        ? Colors.deepOrange.withOpacity(0.12)
-                                        : Colors.grey.shade100,
+                                        ? c.primaryAccent.withValues(alpha: 0.12)
+                                        : c.subtleBg,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: selected
-                                          ? Colors.deepOrange
+                                          ? c.primaryAccent
                                           : Colors.grey.shade300,
                                       width: selected ? 2 : 1,
                                     ),
@@ -689,12 +702,15 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(
-                isAlready
-                    ? Icons.bookmark_remove_outlined
-                    : Icons.bookmark_add_outlined,
-                color: isAlready ? Colors.red : Colors.deepOrange,
-              ),
+              leading: Builder(builder: (bCtx) {
+                final bc = ShelfdThemeScope.colorsOf(bCtx);
+                return Icon(
+                  isAlready
+                      ? Icons.bookmark_remove_outlined
+                      : Icons.bookmark_add_outlined,
+                  color: isAlready ? Colors.red : bc.primaryAccent,
+                );
+              }),
               title: Text(isAlready
                   ? 'Remove from Future Reads'
                   : 'Add to Future Reads'),
@@ -760,6 +776,15 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isHighContrast =
+        ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
     if (widget.reviews.isEmpty) {
       return const Center(
         child: Text(
@@ -787,11 +812,12 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
       padding: const EdgeInsets.all(16),
       children: [
         for (final entry in grouped.entries) ...[
-          _buildMonthBanner(entry.key),
+          _buildMonthBanner(entry.key, c),
           for (final review in entry.value)
             GestureDetector(
               onLongPress: () => _addToWishlist(context, review),
               child: Card(
+                shape: hcShape,
                 color: review.isFavourite
                     ? Colors.amber.withOpacity(0.15)
                     : null,
@@ -965,6 +991,7 @@ class _ExpandableReviewTextState extends State<_ExpandableReviewText> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
+      final c = ShelfdThemeScope.colorsOf(context);
       final span = TextSpan(
           text: widget.text, style: const TextStyle(fontSize: 14));
       final tp = TextPainter(
@@ -1023,13 +1050,13 @@ class _ExpandableReviewTextState extends State<_ExpandableReviewText> {
                         horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       border: Border.all(
-                          color: Colors.deepOrange, width: 1.2),
+                          color: c.primaryAccent, width: 1.2),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Read all',
                       style: TextStyle(
-                        color: Colors.deepOrange,
+                        color: c.primaryAccent,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
@@ -1062,6 +1089,7 @@ class _ReactionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     final activeEmojis =
         _kReactionEmojis.where((e) => (counts[e] ?? 0) > 0).toList();
 
@@ -1086,12 +1114,12 @@ class _ReactionRow extends StatelessWidget {
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: isMine
-                          ? Colors.orange.shade50
-                          : Colors.grey.shade100,
+                          ? c.primaryAccent.withValues(alpha: 0.07)
+                          : c.subtleBg,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color:
-                            isMine ? Colors.deepOrange : Colors.grey.shade300,
+                            isMine ? c.primaryAccent : Colors.grey.shade300,
                         width: isMine ? 2 : 1,
                       ),
                     ),
@@ -1200,6 +1228,15 @@ class _StatsTabState extends State<_StatsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isHighContrast =
+        ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
     if (widget.reviews.isEmpty) {
       return const Center(
         child: Text('No stats yet.', style: TextStyle(color: Colors.grey)),
@@ -1210,6 +1247,7 @@ class _StatsTabState extends State<_StatsTab> {
       padding: const EdgeInsets.all(16),
       children: [
         Card(
+          shape: hcShape,
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () => setState(() => _booksExpanded = !_booksExpanded),
@@ -1243,6 +1281,7 @@ class _StatsTabState extends State<_StatsTab> {
                   children: [
                     const SizedBox(height: 8),
                     Card(
+                      shape: hcShape,
                       margin: const EdgeInsets.symmetric(vertical: 3),
                       child: ListTile(
                         dense: true,
@@ -1255,6 +1294,7 @@ class _StatsTabState extends State<_StatsTab> {
                       ),
                     ),
                     Card(
+                      shape: hcShape,
                       margin: const EdgeInsets.symmetric(vertical: 3),
                       child: ListTile(
                         dense: true,
@@ -1267,6 +1307,7 @@ class _StatsTabState extends State<_StatsTab> {
                       ),
                     ),
                     Card(
+                      shape: hcShape,
                       margin: const EdgeInsets.symmetric(vertical: 3),
                       child: ListTile(
                         dense: true,
@@ -1288,6 +1329,7 @@ class _StatsTabState extends State<_StatsTab> {
                 TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         ..._topAuthors.map((a) => Card(
+              shape: hcShape,
               child: ListTile(
                 title: Text(a.key),
                 trailing: Text('${a.value} books'),
@@ -1299,6 +1341,7 @@ class _StatsTabState extends State<_StatsTab> {
                 TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         ..._topRated.map((b) => Card(
+              shape: hcShape,
               color: b.isFavourite
                   ? Colors.amber.withOpacity(0.15)
                   : null,
@@ -1322,6 +1365,7 @@ class _StatsTabState extends State<_StatsTab> {
                 TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         ..._byYear.map((e) => Card(
+              shape: hcShape,
               child: ListTile(
                 leading: const Icon(Icons.calendar_today),
                 title: Text('${e.key}'),
@@ -1423,6 +1467,7 @@ class _ReadOnlyMedal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     return Semantics(
       button: true,
       label:
@@ -1477,7 +1522,7 @@ class _ReadOnlyMedal extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     color: unlocked
-                        ? const Color(0xff5C3A1E)
+                        ? c.brandColor
                         : Colors.grey,
                     fontWeight: unlocked
                         ? FontWeight.w600
@@ -1510,6 +1555,7 @@ class _FriendActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     switch (status) {
       case FriendshipStatus.pendingSent:
         return OutlinedButton.icon(
@@ -1527,7 +1573,7 @@ class _FriendActionButton extends StatelessWidget {
         return ElevatedButton(
           onPressed: onAccept,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.deepOrange,
+            backgroundColor: c.primaryAccent,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20)),
@@ -1540,7 +1586,7 @@ class _FriendActionButton extends StatelessWidget {
           icon: const Icon(Icons.person_add_outlined, size: 16),
           label: const Text('Add Friend'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.deepOrange,
+            backgroundColor: c.primaryAccent,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20)),

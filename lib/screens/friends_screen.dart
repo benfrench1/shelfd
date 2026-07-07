@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../accessibility/accessibility_labels.dart';
+import '../theme/app_theme.dart';
 import '../models/user_profile.dart';
 import '../services/badge_refresh_notifier.dart';
 import '../services/friend_service.dart';
@@ -306,21 +308,24 @@ class _FriendsScreenState extends State<FriendsScreen> {
                           ),
                           const SizedBox(width: 8),
                           if (localPending.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.deepOrange,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '${localPending.length}',
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
+                            Builder(builder: (bCtx) {
+                              final sc = ShelfdThemeScope.colorsOf(bCtx);
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: sc.primaryAccent,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '${localPending.length}',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              );
+                            }),
                         ],
                       ),
                     ),
@@ -524,35 +529,50 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   Widget _buildAvatarCircle(UserProfile? profile, {String? semanticLabel}) {
-    final ImageProvider? img = profile?.avatarAsset != null
-        ? AssetImage(profile!.avatarAsset!) as ImageProvider
-        : profile?.photoUrl != null
-            ? NetworkImage(profile!.photoUrl!)
-            : null;
-    return Semantics(
-      image: true,
-      label: semanticLabel ?? avatarSemanticLabel(),
-      child: ExcludeSemantics(
-        child: CircleAvatar(
-          backgroundColor: const Color(0xff5C3A1E),
-          backgroundImage: img,
-          child: img == null
-              ? const Icon(Icons.person, color: Colors.white)
-              : null,
+    return Builder(builder: (context) {
+      final c = ShelfdThemeScope.colorsOf(context);
+      final ImageProvider? img = profile?.avatarAsset != null
+          ? AssetImage(profile!.avatarAsset!) as ImageProvider
+          : profile?.photoUrl != null
+              ? NetworkImage(profile!.photoUrl!)
+              : null;
+      return Semantics(
+        image: true,
+        label: semanticLabel ?? avatarSemanticLabel(),
+        child: ExcludeSemantics(
+          child: CircleAvatar(
+            backgroundColor: c.brandColor,
+            backgroundImage: img,
+            child: img == null
+                ? const Icon(Icons.person, color: Colors.white)
+                : null,
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
     return Scaffold(
-      backgroundColor: const Color(0xffF5F2ED),
+      backgroundColor: c.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xffF5F2ED),
+        backgroundColor: c.scaffoldBg,
         elevation: 0,
-        title: const Text('Friends',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+            'Friends',
+            style: isBatman
+                ? GoogleFonts.orbitron(fontWeight: FontWeight.bold)
+                : const TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
           Stack(
@@ -598,6 +618,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
         children: [
           // ── Search card ──────────────────────────────────────
           Card(
+            shape: hcShape,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -636,7 +657,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               tooltip: 'Search for friend',
                               onPressed: _search,
                               style: IconButton.styleFrom(
-                                backgroundColor: Colors.deepOrange,
+                                backgroundColor: c.primaryAccent,
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                     borderRadius:
@@ -682,7 +703,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 '${_friends.length}',
                 style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey.shade600,
+                    color: c.textSecondary,
                     fontWeight: FontWeight.w500),
               ),
               if (_newlyAcceptedSent.isNotEmpty || _newlyReceivedAccepted.isNotEmpty) ...
@@ -692,7 +713,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.deepOrange,
+                      color: c.primaryAccent,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -709,6 +730,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
           const SizedBox(height: 8),
           if (_friends.isEmpty)
             Card(
+              shape: hcShape,
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Text(
@@ -725,6 +747,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   _newlyReceivedAccepted.any((r) => r.id == req.id) ||
                   _justAcceptedByMeIds.contains(req.id);
               return Card(
+                shape: hcShape,
                 child: ListTile(
                   leading: _buildAvatarCircle(
                     _profileCache[req.otherUid(_myUid)],
@@ -748,8 +771,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.deepOrange,
+                          decoration: BoxDecoration(
+                            color: c.primaryAccent,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -776,6 +799,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             ..._pendingSent.map((req) => Card(
+                  shape: hcShape,
                   child: InkWell(
                     onTap: () => _viewProfile(req.otherUid(_myUid)),
                     borderRadius: BorderRadius.circular(12),
@@ -868,6 +892,7 @@ class _SearchResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     Widget action;
     switch (existingStatus) {
       case FriendshipStatus.accepted:
@@ -894,7 +919,7 @@ class _SearchResultTile extends StatelessWidget {
           icon: const Icon(Icons.person_add_outlined, size: 16),
           label: const Text('Add'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.deepOrange,
+            backgroundColor: c.primaryAccent,
             foregroundColor: Colors.white,
             padding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -914,7 +939,7 @@ class _SearchResultTile extends StatelessWidget {
       label: '${profile.displayName}. $privacyIcon.',
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: c.subtleBg,
           borderRadius: BorderRadius.circular(12),
         ),
         padding:
@@ -927,7 +952,7 @@ class _SearchResultTile extends StatelessWidget {
               label: avatarSemanticLabel(name: profile.displayName),
               child: ExcludeSemantics(
                 child: CircleAvatar(
-                  backgroundColor: const Color(0xff5C3A1E),
+                  backgroundColor: c.brandColor,
                   backgroundImage: profile.avatarAsset != null
                       ? AssetImage(profile.avatarAsset!) as ImageProvider
                       : profile.photoUrl != null

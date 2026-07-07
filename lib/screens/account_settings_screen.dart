@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -134,9 +136,97 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
   }
 
+  // ── Theme picker ──────────────────────────────────────────────────────────
+
+  void _showThemeSheet() {
+    final scope = ShelfdThemeScope.of(context);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'Choose Theme',
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'Select a colour scheme for your app experience.',
+                      style: TextStyle(fontSize: 13, color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  for (final t in ShelfdTheme.values)
+                    ListTile(
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 24),
+                      title: Text(
+                        t.displayName,
+                        style: TextStyle(
+                          fontWeight: scope.theme == t
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: scope.theme == t
+                              ? scope.colors.primaryAccent
+                              : null,
+                        ),
+                      ),
+                      leading: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: t.swatches
+                            .map(
+                              (c) => Container(
+                                width: 18,
+                                height: 18,
+                                margin: const EdgeInsets.only(right: 4),
+                                decoration: BoxDecoration(
+                                  color: c,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: Colors.grey.shade400, width: 0.5),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      trailing: scope.theme == t
+                          ? Icon(Icons.check_circle,
+                              color: scope.colors.primaryAccent)
+                          : null,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        scope.onThemeChanged(t);
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // ── Privacy ─────────────────────────────────────────────────────────────────
 
   void _showPrivacySheet() {
+    final c = ShelfdThemeScope.colorsOf(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -177,7 +267,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                               ? Icons.group_outlined
                               : Icons.lock_outline,
                       color: _privacyLevel == level
-                          ? Colors.deepOrange
+                          ? c.primaryAccent
                           : null,
                     ),
                     title: Text(level.label,
@@ -186,14 +276,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                               ? FontWeight.bold
                               : FontWeight.normal,
                           color: _privacyLevel == level
-                              ? Colors.deepOrange
+                              ? c.primaryAccent
                               : null,
                         )),
                     subtitle: Text(level.description,
                         style: const TextStyle(fontSize: 12)),
                     trailing: _privacyLevel == level
-                        ? const Icon(Icons.check_circle,
-                            color: Colors.deepOrange)
+                        ? Icon(Icons.check_circle,
+                            color: c.primaryAccent)
                         : null,
                     onTap: () async {
                       Navigator.of(context).pop();
@@ -233,22 +323,33 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
 
     return Scaffold(
-      backgroundColor: const Color(0xffF5F2ED),
+      backgroundColor: c.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xffF5F2ED),
+        backgroundColor: c.scaffoldBg,
         elevation: 0,
-        title: const Text('Account Settings',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+            'Account Settings',
+            style: isBatman
+                ? GoogleFonts.orbitron(fontWeight: FontWeight.bold)
+                : const TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
           // ── Email ──────────────────────────────────────────────────
-          Card(
-            child: ListTile(
+          Card(            shape: hcShape,            child: ListTile(
               leading: const Icon(Icons.email_outlined),
               title: const Text('Email',
                   style: TextStyle(fontSize: 13, color: Colors.grey)),
@@ -263,6 +364,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           const SizedBox(height: 8),
           // ── Email verified ───────────────────────────────────
           Card(
+            shape: hcShape,
             child: ListTile(
               leading: Icon(
                 user?.emailVerified == true
@@ -286,6 +388,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           // ── Change Password (email users only) ─────────────────────
           if (!_isGoogleUser) ...[
             Card(
+              shape: hcShape,
               child: ListTile(
                 leading: const Icon(Icons.lock_outlined),
                 title: const Text('Change Password'),
@@ -298,6 +401,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
           if (_isGoogleUser) ...[
             Card(
+              shape: hcShape,
               child: ListTile(
                 leading: Image.asset('assets/images/g_google_logo_account_settings.png',
                   height: 20, width: 20, excludeFromSemantics: true),
@@ -311,8 +415,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ],
 
           // ── Username ───────────────────────────────────────────────
-          Card(
-            child: ListTile(
+          Card(            shape: hcShape,            child: ListTile(
               leading: const Icon(Icons.person_outline),
               title: const Text('Username',
                   style: TextStyle(fontSize: 13, color: Colors.grey)),
@@ -337,8 +440,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           const SizedBox(height: 8),
 
           // ── Privacy ────────────────────────────────────────────────
-          Card(
-            child: ListTile(
+          Card(            shape: hcShape,            child: ListTile(
               leading: Icon(
                 _privacyLevel == PrivacyLevel.public
                     ? Icons.public
@@ -355,6 +457,42 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: _showPrivacySheet,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // ── Theme ──────────────────────────────────────────────────
+          Card(            shape: hcShape,            child: ListTile(
+              leading: const Icon(Icons.palette_outlined),
+              title: const Text('Theme',
+                  style: TextStyle(fontSize: 13, color: Colors.grey)),
+              subtitle: Text(
+                ShelfdThemeScope.of(context).theme.displayName,
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: ShelfdThemeScope.of(context)
+                    .theme
+                    .swatches
+                    .map(
+                      (col) => Container(
+                        width: 14,
+                        height: 14,
+                        margin: const EdgeInsets.only(left: 4),
+                        decoration: BoxDecoration(
+                          color: col,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: Colors.grey.shade300, width: 0.5),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+              onTap: _showThemeSheet,
             ),
           ),
 
@@ -421,7 +559,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   style: TextStyle(
                       color: Colors.red, fontWeight: FontWeight.w600)),
               subtitle: const Text('Permanently remove your account and data.',
-                  style: TextStyle(fontSize: 12)),
+                  style: TextStyle(fontSize: 12, color: Colors.black54)),
               trailing:
                   const Icon(Icons.chevron_right, color: Colors.red),
               onTap: _showDeleteAccountDialog,

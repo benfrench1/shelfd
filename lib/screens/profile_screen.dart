@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../accessibility/accessibility_labels.dart';
+import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../models/achievement.dart';
 import '../models/book_review.dart';
@@ -24,10 +26,12 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xffF5F2ED),
+        backgroundColor: c.scaffoldBg,
         body: SafeArea(
           child: Column(
             children: [
@@ -52,7 +56,9 @@ class ProfileScreen extends StatelessWidget {
                         child: Text(
                           'Profile',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 19),
+                          style: isBatman
+                              ? GoogleFonts.orbitron(fontSize: 19)
+                              : const TextStyle(fontSize: 19),
                         ),
                       ),
                     ),
@@ -261,6 +267,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
   void _showQrDialog() {
     final code = _friendCode;
     if (code == null) return;
+    final c = ShelfdThemeScope.colorsOf(context);
     showDialog(
       context: context,
       barrierColor: Colors.black87,
@@ -278,7 +285,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                 maxHeight: MediaQuery.of(context).size.height - 80,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: c.cardBg,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: SingleChildScrollView(
@@ -319,8 +326,8 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                       icon: const Icon(Icons.qr_code_scanner, size: 18),
                       label: const Text("Scan a Friend's Code"),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xff5C3A1E),
-                        side: const BorderSide(color: Color(0xff5C3A1E)),
+                        foregroundColor: c.brandColor,
+                        side: BorderSide(color: c.brandColor),
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
@@ -343,6 +350,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
   }
 
   void _showEnlargedAvatar() {
+    final c = ShelfdThemeScope.colorsOf(context);
     final user = FirebaseAuth.instance.currentUser;
     final ImageProvider? image = _avatarAsset != null
         ? AssetImage(_avatarAsset!) as ImageProvider
@@ -423,9 +431,12 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                       child: GestureDetector(
                         onTap: handleAvatarTap,
                         child: ExcludeSemantics(
-                          child: CircleAvatar(
-                            radius: 140,
-                            backgroundImage: image,
+                          child: themedAvatar(
+                            colors: c,
+                            child: CircleAvatar(
+                              radius: 140,
+                              backgroundImage: image,
+                            ),
                           ),
                         ),
                       ),
@@ -485,6 +496,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
           child: LayoutBuilder(
             builder: (context, constraints) {
+              final c = ShelfdThemeScope.colorsOf(context);
               final textScale = MediaQuery.textScalerOf(context).scale(1);
               final minAvatarExtent = (textScale > 1.2 || constraints.maxWidth < 360)
                   ? 96.0
@@ -549,8 +561,11 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                                   ? Border.all(color: Colors.green, width: 5)
                                   : Border.all(color: Colors.transparent, width: 5),
                             ),
-                            child: CircleAvatar(
-                              backgroundImage: AssetImage(asset),
+                            child: themedAvatar(
+                              colors: c,
+                              child: CircleAvatar(
+                                backgroundImage: AssetImage(asset),
+                              ),
                             ),
                           ),
                         );
@@ -587,6 +602,15 @@ class _UserProfileTabState extends State<_UserProfileTab> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
     final user = FirebaseAuth.instance.currentUser;
 
     return SingleChildScrollView(
@@ -611,17 +635,20 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                   child: GestureDetector(
                     onTap: _showEnlargedAvatar,
                     child: ExcludeSemantics(
-                      child: CircleAvatar(
-                        radius: 52,
-                        backgroundColor: const Color(0xff5C3A1E).withOpacity(0.15),
-                        backgroundImage: _avatarAsset != null
-                            ? AssetImage(_avatarAsset!) as ImageProvider
-                            : (user?.photoURL != null
-                                ? NetworkImage(user!.photoURL!)
-                                : null),
-                        child: _avatarAsset == null && user?.photoURL == null
-                            ? const Icon(Icons.person, size: 52, color: Color(0xff5C3A1E))
-                            : null,
+                      child: themedAvatar(
+                        colors: c,
+                        child: CircleAvatar(
+                          radius: 52,
+                          backgroundColor: c.avatarBg,
+                          backgroundImage: _avatarAsset != null
+                              ? AssetImage(_avatarAsset!) as ImageProvider
+                              : (user?.photoURL != null
+                                  ? NetworkImage(user!.photoURL!)
+                                  : null),
+                          child: _avatarAsset == null && user?.photoURL == null
+                              ? Icon(Icons.person, size: 52, color: c.brandColor)
+                              : null,
+                        ),
                       ),
                     ),
                   ),
@@ -632,7 +659,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                 right: 0,
                 child: CircleAvatar(
                   radius: 16,
-                  backgroundColor: Colors.deepOrange,
+                  backgroundColor: c.primaryAccent,
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     icon: const Icon(Icons.edit, size: 16, color: Colors.white),
@@ -658,6 +685,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
           // Username card (only shown if set)
           if (_username?.isNotEmpty == true) ...[  
             Card(
+              shape: hcShape,
               child: ListTile(
                 leading: const Icon(Icons.person_outline),
                 title: const Text('Username',
@@ -677,7 +705,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                         Icons.qr_code_2,
                         size: MediaQuery.textScalerOf(context).scale(24),
                         color: _friendCode != null
-                            ? const Color(0xff5C3A1E)
+                            ? c.brandColor
                             : Colors.grey.shade300,
                       ),
                     ),
@@ -690,6 +718,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
 
           // Email card
           Card(
+            shape: hcShape,
             child: ListTile(
               leading: const Icon(Icons.email_outlined),
               title: const Text('Email', style: TextStyle(fontSize: 13, color: Colors.grey)),
@@ -708,11 +737,15 @@ class _UserProfileTabState extends State<_UserProfileTab> {
               header: true,
               child: Text(
                 'Achievements',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xff5C3A1E),
-                ),
+                style: isBatman
+                    ? GoogleFonts.orbitron(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: c.brandColor)
+                    : TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: c.brandColor),
               ),
             ),
           ),
@@ -740,11 +773,15 @@ class _UserProfileTabState extends State<_UserProfileTab> {
               header: true,
               child: Text(
                 'Friends',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xff5C3A1E),
-                ),
+                style: isBatman
+                    ? GoogleFonts.orbitron(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: c.brandColor)
+                    : TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: c.brandColor),
               ),
             ),
           ),
@@ -755,6 +792,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
             hint: 'Opens your friends screen',
             excludeSemantics: true,
             child: Card(
+              shape: hcShape,
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () => Navigator.of(context).push(
@@ -768,12 +806,14 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                       const Text('👥',
                           style: TextStyle(fontSize: 32)),
                       const SizedBox(width: 16),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'View Friends',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500),
+                          style: isBatman
+                              ? GoogleFonts.orbitron(
+                                  fontSize: 16, fontWeight: FontWeight.w500)
+                              : const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w500),
                         ),
                       ),
                       if (_pendingRequestCount + _newlyAcceptedCount + _newlyReceivedAcceptedCount > 0) ...
@@ -782,7 +822,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: Colors.deepOrange,
+                              color: c.primaryAccent,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
@@ -813,16 +853,21 @@ class _UserProfileTabState extends State<_UserProfileTab> {
               header: true,
               child: Text(
                 'Activity',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xff5C3A1E),
-                ),
+                style: isBatman
+                    ? GoogleFonts.orbitron(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: c.brandColor)
+                    : TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: c.brandColor),
               ),
             ),
           ),
           const SizedBox(height: 12),
           Card(
+            shape: hcShape,
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () => Navigator.of(context).push(
@@ -842,11 +887,11 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: Colors.deepOrange.withOpacity(0.1),
+                              color: c.primaryAccent.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.groups,
-                                size: 22, color: Colors.deepOrange),
+                            child: Icon(Icons.groups,
+                                size: 22, color: c.primaryAccent),
                           ),
                           Positioned(
                             right: 0,
@@ -854,8 +899,8 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                             child: Container(
                               width: 18,
                               height: 18,
-                              decoration: const BoxDecoration(
-                                color: Colors.deepOrange,
+                              decoration: BoxDecoration(
+                                color: c.primaryAccent,
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(Icons.favorite,
@@ -866,12 +911,14 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Activity Stream',
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500),
+                        style: isBatman
+                            ? GoogleFonts.orbitron(
+                                fontSize: 16, fontWeight: FontWeight.w500)
+                            : const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w500),
                       ),
                     ),
                     if (_activityCount > 0) ...[  
@@ -879,7 +926,7 @@ class _UserProfileTabState extends State<_UserProfileTab> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: Colors.deepOrange,
+                          color: c.primaryAccent,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -937,6 +984,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     return AlertDialog(
       insetPadding:
           const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -1013,7 +1061,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.deepOrange,
+            backgroundColor: c.primaryAccent,
             foregroundColor: Colors.white,
           ),
           onPressed: _isLoading
@@ -1131,12 +1179,22 @@ class _StatsTabState extends State<_StatsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isHighContrast = ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Card(
+            shape: hcShape,
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () => setState(() => _booksExpanded = !_booksExpanded),
@@ -1170,6 +1228,7 @@ class _StatsTabState extends State<_StatsTab> {
                       const SizedBox(height: 8),
                       Card(
                         margin: const EdgeInsets.symmetric(vertical: 3),
+                        shape: hcShape,
                         child: ListTile(
                           dense: true,
                           leading: const Icon(Icons.menu_book, size: 20),
@@ -1182,6 +1241,7 @@ class _StatsTabState extends State<_StatsTab> {
                       ),
                       Card(
                         margin: const EdgeInsets.symmetric(vertical: 3),
+                        shape: hcShape,
                         child: ListTile(
                           dense: true,
                           leading: const Icon(Icons.headphones, size: 20),
@@ -1194,6 +1254,7 @@ class _StatsTabState extends State<_StatsTab> {
                       ),
                       Card(
                         margin: const EdgeInsets.symmetric(vertical: 3),
+                        shape: hcShape,
                         child: ListTile(
                           dense: true,
                           leading: const Icon(Icons.grain, size: 20),
@@ -1209,27 +1270,35 @@ class _StatsTabState extends State<_StatsTab> {
                 : const SizedBox.shrink(),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             "Top Authors",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: isBatman
+                ? GoogleFonts.orbitron(
+                    fontSize: 18, fontWeight: FontWeight.bold)
+                : const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           ...topAuthors.map((a) => Card(
+                shape: hcShape,
                 child: ListTile(
                   title: Text(a.key),
                   trailing: Text("${a.value} books"),
                 ),
               )),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             "Top Rated Books",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: isBatman
+                ? GoogleFonts.orbitron(
+                    fontSize: 18, fontWeight: FontWeight.bold)
+                : const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           ...topRated.map((b) => Card(
                 color: b.isFavourite
                     ? Colors.amber.withOpacity(0.15)
                     : null,
+                shape: hcShape,
                 child: ListTile(
                   title: Text(b.title),
                   subtitle: Text(b.author),
@@ -1243,12 +1312,16 @@ class _StatsTabState extends State<_StatsTab> {
                 ),
               )),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             "Stats by Year",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: isBatman
+                ? GoogleFonts.orbitron(
+                    fontSize: 18, fontWeight: FontWeight.bold)
+                : const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           ...booksByYear.map((entry) => Card(
+                shape: hcShape,
                 child: ListTile(
                   leading: const Icon(Icons.calendar_today),
                   title: Text(entry.key.toString()),
@@ -1447,6 +1520,7 @@ class _AchievementMedal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
     return Semantics(
       button: true,
       label: '${unlocked ? 'Unlocked' : 'Locked'} achievement. ${emojiSemanticLabel(emoji)}. $label',
@@ -1468,7 +1542,7 @@ class _AchievementMedal extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 10,
-                    color: unlocked ? const Color(0xff5C3A1E) : Colors.grey,
+                    color: unlocked ? c.brandColor : Colors.grey,
                     fontWeight: unlocked ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
