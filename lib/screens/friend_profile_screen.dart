@@ -302,6 +302,14 @@ class _OverviewTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
+    final isHighContrast =
+        ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
     final bookCount = reviews.length;
 
     // Avatar — asset or network photo
@@ -393,6 +401,7 @@ class _OverviewTab extends StatelessWidget {
           // Username card
           if (friend.username?.isNotEmpty == true) ...[
             Card(
+              shape: hcShape,
               child: ListTile(
                 leading: const Icon(Icons.person_outline),
                 title: const Text('Username',
@@ -768,6 +777,14 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
   @override
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
+    final isHighContrast =
+        ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
     if (widget.reviews.isEmpty) {
       return const Center(
         child: Text(
@@ -800,6 +817,7 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
             GestureDetector(
               onLongPress: () => _addToWishlist(context, review),
               child: Card(
+                shape: hcShape,
                 color: review.isFavourite
                     ? Colors.amber.withOpacity(0.15)
                     : null,
@@ -1210,6 +1228,15 @@ class _StatsTabState extends State<_StatsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
+    final isHighContrast =
+        ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
+    final hcShape = isHighContrast
+        ? RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: c.brandColor, width: 2.0),
+          )
+        : null;
     if (widget.reviews.isEmpty) {
       return const Center(
         child: Text('No stats yet.', style: TextStyle(color: Colors.grey)),
@@ -1220,6 +1247,7 @@ class _StatsTabState extends State<_StatsTab> {
       padding: const EdgeInsets.all(16),
       children: [
         Card(
+          shape: hcShape,
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () => setState(() => _booksExpanded = !_booksExpanded),
@@ -1253,6 +1281,7 @@ class _StatsTabState extends State<_StatsTab> {
                   children: [
                     const SizedBox(height: 8),
                     Card(
+                      shape: hcShape,
                       margin: const EdgeInsets.symmetric(vertical: 3),
                       child: ListTile(
                         dense: true,
@@ -1265,6 +1294,7 @@ class _StatsTabState extends State<_StatsTab> {
                       ),
                     ),
                     Card(
+                      shape: hcShape,
                       margin: const EdgeInsets.symmetric(vertical: 3),
                       child: ListTile(
                         dense: true,
@@ -1277,6 +1307,7 @@ class _StatsTabState extends State<_StatsTab> {
                       ),
                     ),
                     Card(
+                      shape: hcShape,
                       margin: const EdgeInsets.symmetric(vertical: 3),
                       child: ListTile(
                         dense: true,
@@ -1298,6 +1329,7 @@ class _StatsTabState extends State<_StatsTab> {
                 TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         ..._topAuthors.map((a) => Card(
+              shape: hcShape,
               child: ListTile(
                 title: Text(a.key),
                 trailing: Text('${a.value} books'),
@@ -1309,6 +1341,7 @@ class _StatsTabState extends State<_StatsTab> {
                 TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         ..._topRated.map((b) => Card(
+              shape: hcShape,
               color: b.isFavourite
                   ? Colors.amber.withOpacity(0.15)
                   : null,
@@ -1332,6 +1365,7 @@ class _StatsTabState extends State<_StatsTab> {
                 TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         ..._byYear.map((e) => Card(
+              shape: hcShape,
               child: ListTile(
                 leading: const Icon(Icons.calendar_today),
                 title: Text('${e.key}'),
