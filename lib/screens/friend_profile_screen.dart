@@ -472,6 +472,9 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
   // reviewId → { counts, mine }
   final Map<String, ({Map<String, int> counts, List<String> mine})>
       _reactions = {};
+  String _searchQuery = '';
+  bool _searchVisible = false;
+  final TextEditingController _searchController = TextEditingController();
 
   Widget _buildMonthBanner(String label, AppColors c) {
     return Container(
@@ -519,6 +522,12 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
     } catch (_) {
       // Reactions unavailable (e.g. Firestore rules not yet updated) — fail silently
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _toggleReaction(String reviewId, String emoji) async {
@@ -798,20 +807,110 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
     final sorted = List<BookReview>.from(widget.reviews)
       ..sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
 
+    // Filter by search query
+    final displayed = _searchQuery.isEmpty
+        ? sorted
+        : () {
+            final q = _searchQuery.toLowerCase().trim();
+            return sorted
+                .where((r) =>
+                    r.title.toLowerCase().contains(q) ||
+                    r.author.toLowerCase().contains(q))
+                .toList();
+          }();
+
     final grouped = <String, List<BookReview>>{};
     const months = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December',
     ];
-    for (final r in sorted) {
+    for (final r in displayed) {
       final key = '${months[r.dateAdded.month - 1]} ${r.dateAdded.year}';
       grouped.putIfAbsent(key, () => []).add(r);
     }
 
-    return ListView(
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      behavior: HitTestBehavior.translucent,
+      child: ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        for (final entry in grouped.entries) ...[
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Total books: ${widget.reviews.length}',
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Semantics(
+              button: true,
+              label: _searchVisible ? 'Close search' : 'Search books',
+              child: IconButton(
+                icon: Icon(
+                  _searchVisible ? Icons.search_off : Icons.search,
+                  color: _searchVisible ? c.primaryAccent : null,
+                ),
+                tooltip: _searchVisible ? 'Close search' : 'Search books',
+                onPressed: () {
+                  setState(() {
+                    _searchVisible = !_searchVisible;
+                    if (!_searchVisible) {
+                      _searchQuery = '';
+                      _searchController.clear();
+                    }
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        if (_searchVisible)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'Search by title or author…',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Clear search',
+                        onPressed: () {
+                          setState(() {
+                            _searchQuery = '';
+                            _searchController.clear();
+                          });
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+                isDense: true,
+              ),
+              onChanged: (value) {
+                setState(() => _searchQuery = value);
+              },
+            ),
+          ),
+        const SizedBox(height: 4),
+        if (_searchQuery.isNotEmpty && displayed.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: Center(
+              child: Text(
+                'No results for "$_searchQuery"',
+                style: TextStyle(color: Colors.grey.shade500),
+              ),
+            ),
+          )
+        else for (final entry in grouped.entries) ...[
           _buildMonthBanner(entry.key, c),
           for (final review in entry.value)
             GestureDetector(
@@ -920,6 +1019,7 @@ class _ReadingLogTabState extends State<_ReadingLogTab> {
             ),
         ],
       ],
+      ),
     );
   }
 }
