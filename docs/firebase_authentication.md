@@ -19,7 +19,7 @@ SHA-256: ...
 ### Firebase Database (Firestore)
 
 - A database was created in Firestore
-- Rules added in Firestore to ensure only authenticated users are grnated access to data:
+- Rules added in Firestore to ensure only authenticated users are granted access to data:
 ```
 rules_version = '2';
 service cloud.firestore {
