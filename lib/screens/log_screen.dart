@@ -172,6 +172,9 @@ class _LogScreenState extends State<LogScreen> {
   List<BookReview> reviews = [];
   String sortOption = 'date';
   final Map<String, ({Map<String, int> counts, List<String> mine})> _reactions = {};
+  String _searchQuery = '';
+  bool _searchVisible = false;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -211,6 +214,22 @@ class _LogScreenState extends State<LogScreen> {
     } catch (_) {
       // Reactions unavailable — fail silently
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<BookReview> get _displayedReviews {
+    if (_searchQuery.isEmpty) return reviews;
+    final q = _searchQuery.toLowerCase().trim();
+    return reviews
+        .where((r) =>
+            r.title.toLowerCase().contains(q) ||
+            r.author.toLowerCase().contains(q))
+        .toList();
   }
 
   /// Returns the last word of an author string, used for surname sorting.
@@ -271,10 +290,10 @@ class _LogScreenState extends State<LogScreen> {
     ).then((_) => loadReviews());
   }
 
-  Map<String, List<BookReview>> groupReviews() {
+  Map<String, List<BookReview>> groupReviews([List<BookReview>? list]) {
     final Map<String, List<BookReview>> grouped = {};
 
-    for (final review in reviews) {
+    for (final review in list ?? reviews) {
       final key =
           "${_monthName(review.dateAdded.month)} ${review.dateAdded.year}";
       grouped.putIfAbsent(key, () => []);
@@ -630,14 +649,17 @@ class _LogScreenState extends State<LogScreen> {
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
     final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
-    final grouped = groupReviews();
+    final grouped = groupReviews(_displayedReviews);
     final textScale = MediaQuery.of(context).textScaleFactor;
     final useCompactSort = textScale > 1.2;
 
     return Scaffold(
       backgroundColor: c.scaffoldBg,
-      body: SafeArea(
-        child: Column(
+      body: GestureDetector(
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: SafeArea(
+          child: Column(
           children: [
             // Header row
             Padding(
@@ -711,16 +733,85 @@ class _LogScreenState extends State<LogScreen> {
                   : ListView(
                       padding: const EdgeInsets.all(12),
                       children: [
-                        Text(
-                          'Total books: ${reviews.length}',
-                          style: isBatman
-                              ? GoogleFonts.orbitron(
-                                  fontSize: 18, fontWeight: FontWeight.bold)
-                              : const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Total books: ${reviews.length}',
+                                style: isBatman
+                                    ? GoogleFonts.orbitron(
+                                        fontSize: 18, fontWeight: FontWeight.bold)
+                                    : const TextStyle(
+                                        fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            Semantics(
+                              button: true,
+                              label: _searchVisible ? 'Close search' : 'Search books',
+                              child: IconButton(
+                                icon: Icon(
+                                  _searchVisible ? Icons.search_off : Icons.search,
+                                  color: _searchVisible ? c.primaryAccent : null,
+                                ),
+                                tooltip: _searchVisible ? 'Close search' : 'Search books',
+                                onPressed: () {
+                                  setState(() {
+                                    _searchVisible = !_searchVisible;
+                                    if (!_searchVisible) {
+                                      _searchQuery = '';
+                                      _searchController.clear();
+                                    }
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-                        if (sortOption == 'date')
+                        if (_searchVisible)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: TextField(
+                              controller: _searchController,
+                              autofocus: true,
+                              decoration: InputDecoration(
+                                hintText: 'Search by title or author…',
+                                prefixIcon: const Icon(Icons.search),
+                                suffixIcon: _searchQuery.isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(Icons.clear),
+                                        tooltip: 'Clear search',
+                                        onPressed: () {
+                                          setState(() {
+                                            _searchQuery = '';
+                                            _searchController.clear();
+                                          });
+                                        },
+                                      )
+                                    : null,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 10),
+                                isDense: true,
+                              ),
+                              onChanged: (value) {
+                                setState(() => _searchQuery = value);
+                              },
+                            ),
+                          ),
+                        const SizedBox(height: 4),
+                        if (_searchQuery.isNotEmpty && _displayedReviews.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: Center(
+                              child: Text(
+                                'No results for "$_searchQuery"',
+                                style: TextStyle(color: Colors.grey.shade500),
+                              ),
+                            ),
+                          )
+                        else if (sortOption == 'date')
                           ...grouped.entries.map((entry) {
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -734,7 +825,7 @@ class _LogScreenState extends State<LogScreen> {
                           // Group by author (preserving sort order)
                           final List<Widget> items = [];
                           String? lastAuthor;
-                          for (final review in reviews) {
+                          for (final review in _displayedReviews) {
                             if (review.author != lastAuthor) {
                               lastAuthor = review.author;
                               items.add(
@@ -756,11 +847,12 @@ class _LogScreenState extends State<LogScreen> {
                           return items;
                         }()
                         else
-                          ...reviews.map(buildCard),
+                          ..._displayedReviews.map(buildCard),
                       ],
                     ),
             ),
           ],
+        ),
         ),
       ),
     );
