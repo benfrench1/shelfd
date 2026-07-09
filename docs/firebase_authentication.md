@@ -154,6 +154,7 @@ service cloud.firestore {
     - Only the two parties involved can read a request — no third party can see your requests.
     - Either party can delete (cancel/decline/unfriend)
 
+---
 
 #### Firebase Costs (Spark)
 
@@ -166,8 +167,8 @@ Firestore Spark (free) plan limits:
 | Document writes | 20,000/day | Very low — only on send/accept/decline |
 | Document deletes | 20,000/day | Very low — only on cancel/unfriend |
 
-> [!NOTE] _if_ limits were reached:
->  "The way the Spark plan operates is that if your project exceeds the no-cost quota limit in a calendar month for any specific product (like Firestore reads), your project's usage of that particular product will be shut off for the remainder of that month."
+> [!NOTE]
+> _if_ limits were reached: "*The way the Spark plan operates is that if your project exceeds the no-cost quota limit in a calendar month for any specific product (like Firestore reads), your project's usage of that particular product will be shut off for the remainder of that month.*"
 
 #### Firebase Storage
 
