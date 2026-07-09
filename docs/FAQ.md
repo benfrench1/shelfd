@@ -78,7 +78,7 @@
 >
 > <img src="./doc_images/search_for_friend.png" alt="drawing" title="Image eleven" width="350"/>
 >
-> The second option is by using the QR code scanner on the Profile screen on the right of the Username field. Once the QR code is selected the code is enlarged so anyone else can scan it. From here there is an option to scan someone else code as well.
+> The second option is by using the QR code scanner on the Profile screen on the right of the Username field. Once the QR code is selected the code is enlarged so anyone else can scan it. From here there is an option to scan someone elses code as well.
 >
 > <img src="./doc_images/qr_code.png" alt="drawing" title="Image twelve" width="350"/>
 

@@ -16,6 +16,7 @@
 **FireStore:**
 - Any information/data associated with a user is stored in FireStore. Anytime this is updated, changed, added to, or removed FireStore is involved. Any read or write type operation.
 
+---
 
 #### New User Registration Flow
 
