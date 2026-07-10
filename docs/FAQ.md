@@ -28,7 +28,7 @@
 
 <summary>2. How to edit a review?</summary>
 
-> A review can be edited once logged. This can be achieved by holding down on the loged book in the Reading Log screen.
+> A review can be edited once logged. This can be achieved by holding down on the logged book in the Reading Log screen.
 >
 > <img src="./doc_images/edit_delete_existing_review_log_screen.png" alt="drawing" title="Image six" width="350"/>
 >
