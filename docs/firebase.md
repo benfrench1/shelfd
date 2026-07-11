@@ -154,6 +154,41 @@ service cloud.firestore {
     - Only the two parties involved can read a request — no third party can see your requests.
     - Either party can delete (cancel/decline/unfriend)
 
+### Firebase Crashlytics Integration
+
+Crashlyitcs integration ensures comprehensive crash reports are shipped and visibe in the Firebase console. Useful docs on setup: https://firebase.google.com/docs/crashlytics/flutter/get-started
+
+- Firebase Crashlytics is a **completely no-cost** product with no charge to enable or use it (even with the Spark plan). 
+- Can be used with millions of users without needing to upgrade the billing plan.
+- Crashlytics does limit custom logging to 64kB per session.
+  - In Firebase Crashlytics, custom logs are diagnostic text messages you write in your code to track the exact steps a user took leading up to a crash (for example, "User opened cart" or "Payment API returned 200").
+  - A **session** starts when a user opens he app and ends when the app is either closed by the user or terminates due to a crash. All the custom logs generated during this single run are grouped together.
+  - How much is 64kB? In terms of plain text, 64 kilobytes (kB) is roughly equivalent to 64,000 characters. For a typical app session, this is a very generous amount of space—allowing you to write thousands of log entries before hitting the limit.
+  - If the 64kB limit is exceeded Crashlytics uses a rolling log buffer (First-In, First-Out). If your app generates more than 64kB of logs during a single session, the oldest log entries are deleted to make room for the newest ones.
+- All core Crashlytics features (such as realtime crash reporting, tracking non-fatal errors, and receiving alerts) are fully available on the Spark plan. However, if you eventually want to export your raw crash data to BigQuery for advanced custom analysis, you would need to upgrade to the pay-as-you-go Blaze plan, as BigQuery is a paid Google Cloud service.
+
+One time configuration and commands:
+1. `flutter pub add firebase_crashlytics && flutter pub add firebase_analytics`
+2. `flutterfire configure`
+3. `flutter run`
+4. Amend the `lib/main.dart` file as stated in the docs with the crashlytics error handlers
+
+Integration with Crashlytics should now be completed successfully. Final steps are to add a dummy temporary button which when pressed will initiate an exception e.g.
+
+```
+TextButton(
+    onPressed: () => throw Exception(),
+    child: const Text("Throw Test Exception"),
+),
+```
+
+Process to tet dummy button:
+1. Run in release/profile mode e.g. `flutter run --release`
+2. Tap the test button → app crashes
+3. Reopen the app
+4. Check the Firebase Console (can take a minute or two to appear)
+
+
 ---
 
 #### Firebase Costs (Spark)
@@ -177,3 +212,5 @@ Firestore Spark (free) plan limits:
     - No-cost up to 5 GB
     - Then $0.10/GB
 - For now will use a set of predefined default images whcih can be stored in `assests`.
+
+

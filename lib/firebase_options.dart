@@ -57,6 +57,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '733722860103',
     projectId: 'shelfd-41c13',
     storageBucket: 'shelfd-41c13.firebasestorage.app',
+    androidClientId: '733722860103-fj6plrhnufpdli34lm7qf1dgsdknvqc8.apps.googleusercontent.com',
+    iosClientId: '733722860103-83htvqj5epf8vakv70rcq0bsek1thg9m.apps.googleusercontent.com',
     iosBundleId: 'com.example.firstApp',
   );
 
@@ -66,6 +68,9 @@ class DefaultFirebaseOptions {
     messagingSenderId: '733722860103',
     projectId: 'shelfd-41c13',
     storageBucket: 'shelfd-41c13.firebasestorage.app',
+    androidClientId: '733722860103-fj6plrhnufpdli34lm7qf1dgsdknvqc8.apps.googleusercontent.com',
+    iosClientId: '733722860103-83htvqj5epf8vakv70rcq0bsek1thg9m.apps.googleusercontent.com',
     iosBundleId: 'com.example.firstApp',
   );
+
 }
