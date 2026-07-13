@@ -1,4 +1,4 @@
-package com.example.first_app
+package com.benfrench.shelfd
 
 import io.flutter.embedding.android.FlutterActivity
 

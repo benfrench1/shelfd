@@ -7,6 +7,50 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:733722860103:android:41bc916f386b6220e32f62",
+        "android_client_info": {
+          "package_name": "com.benfrench.shelfd"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "733722860103-m86ircs7rdv6r4oi669p4s0hjo9an03p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.benfrench.shelfd",
+            "certificate_hash": "abafe1adb9a79d3b2306a106a0b15f1aac6db9dc"
+          }
+        },
+        {
+          "client_id": "733722860103-o54lsa820e5fttrt0n42eltmptmq9one.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaKanlTkvCmZwvZPWxUlQWq-xBu7vvlTg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "733722860103-o54lsa820e5fttrt0n42eltmptmq9one.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "733722860103-83htvqj5epf8vakv70rcq0bsek1thg9m.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.firstApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:733722860103:android:26c44e560e924d0ee32f62",
         "android_client_info": {
           "package_name": "com.example.first_app"
