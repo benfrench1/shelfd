@@ -36,10 +36,15 @@ storeFile=<keystore-file-location>
 flutter build appbundle
 ```
 
+Successful build `✓ Built build/app/outputs/bundle/release/app-release.aab (78.7MB)`
 
+5. Create Developer Google Play account
 
-Run the Build Command: You run a release build command in your terminal (such as flutter build appbundle for Flutter, or ./gradlew bundleRelease for a native Android app).
+6. "Create App" in Google Play Console 
 
-Automatic Signing: Gradle compiles your code, packages it, and automatically signs it using the keystore specified in your properties file.
+7. Finish setting up app (Privacy Policy), sign-in details, Ads, Data safety etc)
 
-Retrieve the Package: Your signed .aab file will be generated and placed in your build output directory (typically build/app/outputs/bundle/release/). This is the file you will upload to the Google Play Console.
+8. Internal testing, Closed testing
+
+9. Apply for access to Production (available to public)
+
