@@ -1,1 +1,48 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"shelfd-41c13","appId":"1:733722860103:android:26c44e560e924d0ee32f62","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"shelfd-41c13","appId":"1:733722860103:ios:46dda18fc8a002e4e32f62","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"macos":{"default":{"projectId":"shelfd-41c13","appId":"1:733722860103:ios:46dda18fc8a002e4e32f62","uploadDebugSymbols":false,"fileOutput":"macos/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"shelfd-41c13","configurations":{"android":"1:733722860103:android:26c44e560e924d0ee32f62","ios":"1:733722860103:ios:46dda18fc8a002e4e32f62","macos":"1:733722860103:ios:46dda18fc8a002e4e32f62","web":"1:733722860103:web:c3d8d7cf396c76bae32f62"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "shelfd-41c13",
+          "appId": "1:733722860103:android:26c44e560e924d0ee32f62",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "shelfd-41c13",
+          "appId": "1:733722860103:ios:46dda18fc8a002e4e32f62",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "shelfd-41c13",
+          "appId": "1:733722860103:ios:46dda18fc8a002e4e32f62",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "shelfd-41c13",
+          "configurations": {
+            "android": "1:733722860103:android:26c44e560e924d0ee32f62",
+            "ios": "1:733722860103:ios:46dda18fc8a002e4e32f62",
+            "macos": "1:733722860103:ios:46dda18fc8a002e4e32f62",
+            "web": "1:733722860103:web:c3d8d7cf396c76bae32f62"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "docs/public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

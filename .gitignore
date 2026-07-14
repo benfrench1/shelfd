@@ -48,4 +48,8 @@ app.*.map.json
 # Local Android signing config (contains keystore passwords)
 /android/key.properties
 *.jks
+
+# Firebase CLI cache and logs
+.firebase/
+firepit-log.txt
 *.keystore
