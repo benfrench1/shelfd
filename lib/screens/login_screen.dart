@@ -134,7 +134,8 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _errorMessage = _friendlyError(e.code);
       });
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('Google sign-in failed: $e\n$st');
       setState(() {
         _errorMessage = 'Google sign in failed. Please try again.';
       });

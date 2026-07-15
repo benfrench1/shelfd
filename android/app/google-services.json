@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "733722860103-48em8k64q745bu9jej2u33ng2qhutfvu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.benfrench.shelfd",
+            "certificate_hash": "96eb0fe1a15100d2d595ae2218439d315cde7eb7"
+          }
+        },
+        {
           "client_id": "733722860103-m86ircs7rdv6r4oi669p4s0hjo9an03p.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
@@ -63,6 +71,14 @@
           "android_info": {
             "package_name": "com.example.first_app",
             "certificate_hash": "abafe1adb9a79d3b2306a106a0b15f1aac6db9dc"
+          }
+        },
+        {
+          "client_id": "733722860103-irfv9n3tftme05n3gtv5uspl78ahfhoi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.first_app",
+            "certificate_hash": "96eb0fe1a15100d2d595ae2218439d315cde7eb7"
           }
         },
         {

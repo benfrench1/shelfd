@@ -60,3 +60,15 @@ Firebase Hosting is Google's CDN-backed static hosting service. Your page stays 
 The only time you'd run the command again is if you update the HTML file and want to publish the changes.
 
 Hosting URL: https://shelfd-41c13.web.app/user_account_data_deletion_request.html
+
+#### Note on Google Sign in issue with initial Closed Testig release
+
+- Google Sign-In only works if Firebase knows about the certificate that signed the app. Testing up until the closed release were using the registered the debug SHA-1. 
+
+```
+Protect with Play → Play Store Protection → Protect app signing key → Manage Play app signing → App signing key certificate → SHA-1 certificate fingerprint
+```
+
+This SHA-1 was added to the `FireBase Project Settings → SHA certificate fingerprints (add fingerprint)`
+
+- Google authentication handshake now succeeds
