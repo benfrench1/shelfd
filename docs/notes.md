@@ -34,3 +34,29 @@ Both use ListView.builder, which is lazy — it only builds the widgets currentl
 
 - The current implementation is perfectly appropriate for a personal reading app. Pagination would only be a consideration if users logged thousands of books (very unlikely).
 
+#### Note on configuring a static web page for outlining the Deletion of accounts
+
+As part of the Google Play checklist of requirements if an app captures personal information a user must have the ability to delete this themselves or request its deletion. This information is hosted as a static web page leveraging **Firebase Hosting**
+
+Followed steps in UI and the following was added to the `firebase.json` file
+
+```
+  "hosting": {
+    "public": "docs/public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+```
+
+Added the `user_account_data_deletion_request.html` file to host this information
+
+Running the following command `firebase deploy --only hosting` is a one-time command. Once you run it, Firebase Hosting serves the page permanently — 24/7, for free — without you needing to do anything else or keep a terminal running.
+
+Firebase Hosting is Google's CDN-backed static hosting service. Your page stays live until you explicitly take it down or redeploy. It's not like a local server that needs to stay running.
+
+The only time you'd run the command again is if you update the HTML file and want to publish the changes.
+
+Hosting URL: https://shelfd-41c13.web.app/user_account_data_deletion_request.html

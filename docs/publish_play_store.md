@@ -29,7 +29,7 @@ storeFile=<keystore-file-location>
 
 ---
 
-#### Build th App
+#### Build the App
 
 4. Run build of app
 ```
