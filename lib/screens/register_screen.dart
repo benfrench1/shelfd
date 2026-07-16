@@ -23,11 +23,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_onEmailChanged);
+  }
+
+  void _onEmailChanged() => setState(() {});
+
+  bool get _isGoogleEmail {
+    final email = _emailController.text.trim().toLowerCase();
+    return RegExp(r'@(gmail\.com|googlemail\.com)$').hasMatch(email);
+  }
+
+  @override
   void dispose() {
+    _emailController.removeListener(_onEmailChanged);
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final result = await _authService.signInWithGoogle();
+      if (!mounted) return;
+      if (result == null) {
+        setState(() => _isLoading = false);
+      } else {
+        // Pop the register screen so the root StreamBuilder
+        // can surface MainNavigationScreen now that auth state changed.
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = _friendlyError(e.code);
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Google sign in failed. Please try again.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _register() async {
@@ -198,6 +244,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return null;
                     },
                   ),
+                  if (!_isGoogleEmail) ...[
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordController,
@@ -301,6 +348,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return null;
                     },
                   ),
+                  ], // end if (!_isGoogleEmail)
                   if (_errorMessage != null) ...[
                     const SizedBox(height: 12),
                     Text(
@@ -310,35 +358,72 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ],
                   const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepOrange,
-                        padding: const EdgeInsets.all(16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  if (_isGoogleEmail) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _isLoading ? null : _signInWithGoogle,
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: const Color(0xff4285F4),
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white),
+                          padding: const EdgeInsets.all(16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
+                        icon: Image.asset(
+                          'assets/images/g_google_logo.png',
+                          height: 20,
+                          width: 20,
+                          excludeFromSemantics: true,
+                        ),
+                        label: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Create Account with Google',
+                                style: TextStyle(fontSize: 16, color: Colors.white),
+                              ),
                       ),
-                      onPressed: _isLoading ? null : _register,
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Create Account',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
                     ),
-                  ),
+                  ] else ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepOrange,
+                          padding: const EdgeInsets.all(16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: _isLoading ? null : _register,
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Create Account',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Wrap(
                     alignment: WrapAlignment.center,
