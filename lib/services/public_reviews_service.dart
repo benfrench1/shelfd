@@ -1,8 +1,6 @@
-import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import '../models/book.dart';
 import '../models/book_review.dart';
 import '../models/user_profile.dart';
@@ -34,24 +32,6 @@ class PublicEntry {
 
   bool get isPrivate => profile?.privacyLevel == PrivacyLevel.private;
   String get displayName => profile?.displayName ?? 'Shelfd User';
-}
-
-// ─── Hardcover Review ────────────────────────────────────────────────────────
-
-class HardcoverReview {
-  final String? username;
-  final String? displayName;
-  final double? rating; // out of 5
-  final String? reviewText;
-  final int likedByCount;
-
-  const HardcoverReview({
-    this.username,
-    this.displayName,
-    this.rating,
-    this.reviewText,
-    this.likedByCount = 0,
-  });
 }
 
 // ─── Public Reviews Service ──────────────────────────────────────────────────
@@ -142,9 +122,6 @@ class PublicReviewsService {
       if (segments.length < 4) continue;
       final ownerUid = segments[1];
 
-      // Skip the current user's own review
-      if (ownerUid == _myUid) continue;
-
       final review = BookReview.fromJson(doc.data(), id: doc.id);
       entries.add(PublicEntry(review: review, ownerUid: ownerUid));
       uidsToFetch.add(ownerUid);
@@ -233,121 +210,4 @@ class PublicReviewsService {
       // Reactions unavailable — silently ignore
     }
   }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Hardcover reviews
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /// Your Hardcover API token. Obtain a free token at:
-  ///   https://hardcover.app/account/api
-  /// Leave blank to disable the Hardcover fallback.
-  static const String _kHardcoverToken = '';
-
-  static const String _kHardcoverEndpoint =
-      'https://api.hardcover.app/v1/graphql';
-
-  /// Returns HardCover reviews for [book], or an empty list if unavailable
-  /// (no token configured, network error, or book not found).
-  static Future<List<HardcoverReview>> fetchHardcoverReviews(Book book) async {
-    if (_kHardcoverToken.isEmpty) return [];
-
-    // Step 1: find the book id by title
-    final searchPayload = jsonEncode({
-      'query': r'''
-        query SearchBook($title: String!) {
-          books(where: { title: { _ilike: $title } }, limit: 1) {
-            id
-            title
-          }
-        }
-      ''',
-      'variables': {'title': book.title},
-    });
-
-    try {
-      final searchResp = await http
-          .post(
-            Uri.parse(_kHardcoverEndpoint),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $_kHardcoverToken',
-            },
-            body: searchPayload,
-          )
-          .timeout(const Duration(seconds: 10));
-
-      if (searchResp.statusCode != 200) return [];
-
-      final searchData = jsonDecode(searchResp.body) as Map<String, dynamic>;
-      final books = (searchData['data']?['books'] as List<dynamic>?) ?? [];
-      if (books.isEmpty) return [];
-      final bookId = books.first['id'];
-
-      // Step 2: fetch reviews for that book id
-      final reviewPayload = jsonEncode({
-        'query': r'''
-          query BookReviews($bookId: Int!) {
-            books(where: { id: { _eq: $bookId } }, limit: 1) {
-              user_books(
-                where: {
-                  rating: { _is_null: false }
-                }
-                order_by: { liked_by_count: desc }
-                limit: 50
-              ) {
-                rating
-                review
-                liked_by_count
-                user {
-                  username
-                  name
-                }
-              }
-            }
-          }
-        ''',
-        'variables': {'bookId': bookId},
-      });
-
-      final reviewResp = await http
-          .post(
-            Uri.parse(_kHardcoverEndpoint),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $_kHardcoverToken',
-            },
-            body: reviewPayload,
-          )
-          .timeout(const Duration(seconds: 10));
-
-      if (reviewResp.statusCode != 200) return [];
-
-      final reviewData = jsonDecode(reviewResp.body) as Map<String, dynamic>;
-      final booksResult =
-          (reviewData['data']?['books'] as List<dynamic>?) ?? [];
-      if (booksResult.isEmpty) return [];
-
-      final userBooks =
-          (booksResult.first['user_books'] as List<dynamic>?) ?? [];
-
-      return userBooks.map((ub) {
-        final user = ub['user'] as Map<String, dynamic>?;
-        final rawRating = ub['rating'];
-        return HardcoverReview(
-          username: user?['username'] as String?,
-          displayName: (user?['name'] as String?)?.isNotEmpty == true
-              ? user!['name'] as String
-              : user?['username'] as String?,
-          rating: rawRating != null ? (rawRating as num).toDouble() : null,
-          reviewText: ub['review'] as String?,
-          likedByCount: (ub['liked_by_count'] as num?)?.toInt() ?? 0,
-        );
-      }).toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  /// Returns true if a Hardcover token is configured.
-  static bool get hardcoverEnabled => _kHardcoverToken.isNotEmpty;
 }

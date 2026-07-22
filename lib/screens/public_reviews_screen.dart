@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../accessibility/accessibility_labels.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/book.dart';
 import '../models/book_review.dart';
 import '../models/user_profile.dart';
@@ -212,16 +213,19 @@ class _PublicReviewsScreenState extends State<PublicReviewsScreen> {
               // ── Book title sub-header ─────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Text(
-                  widget.book.title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: c.textSecondary,
+                child: Semantics(
+                  header: true,
+                  child: Text(
+                    widget.book.title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: c.textPrimary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
                 ),
               ),
 
@@ -258,6 +262,7 @@ class _PublicReviewsScreenState extends State<PublicReviewsScreen> {
                               _LatestTab(
                                 book: widget.book,
                                 entries: _entries!,
+                                friendUids: _friendUids,
                                 onReactionChanged: () =>
                                     setState(() {}),
                               ),
@@ -265,6 +270,7 @@ class _PublicReviewsScreenState extends State<PublicReviewsScreen> {
                               _TopReviewsTab(
                                 book: widget.book,
                                 entries: _entries!,
+                                friendUids: _friendUids,
                                 reactionsLoaded: _reactionsLoaded,
                                 onReactionChanged: () =>
                                     setState(() {}),
@@ -330,11 +336,13 @@ class _ErrorView extends StatelessWidget {
 class _LatestTab extends StatefulWidget {
   final Book book;
   final List<PublicEntry> entries;
+  final Set<String> friendUids;
   final VoidCallback onReactionChanged;
 
   const _LatestTab({
     required this.book,
     required this.entries,
+    required this.friendUids,
     required this.onReactionChanged,
   });
 
@@ -352,22 +360,22 @@ class _LatestTabState extends State<_LatestTab> {
       return _EmptyState(book: widget.book);
     }
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        // Trigger parent reload via a GlobalKey or callback if needed.
-        // For now a pull-to-refresh hint is shown.
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+      itemCount: _sorted.length + (widget.entries.length < 6 ? 1 : 0),
+      itemBuilder: (ctx, i) {
+        if (i < _sorted.length) {
+          return _ReviewCard(
+            entry: _sorted[i],
+            isFriend: widget.friendUids.contains(_sorted[i].ownerUid),
+            onReactionUpdated: () {
+              if (mounted) setState(() {});
+              widget.onReactionChanged();
+            },
+          );
+        }
+        return _OutsideReviewsSection(book: widget.book);
       },
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-        itemCount: _sorted.length,
-        itemBuilder: (ctx, i) => _ReviewCard(
-          entry: _sorted[i],
-          onReactionUpdated: () {
-            if (mounted) setState(() {});
-            widget.onReactionChanged();
-          },
-        ),
-      ),
     );
   }
 }
@@ -377,12 +385,14 @@ class _LatestTabState extends State<_LatestTab> {
 class _TopReviewsTab extends StatefulWidget {
   final Book book;
   final List<PublicEntry> entries;
+  final Set<String> friendUids;
   final bool reactionsLoaded;
   final VoidCallback onReactionChanged;
 
   const _TopReviewsTab({
     required this.book,
     required this.entries,
+    required this.friendUids,
     required this.reactionsLoaded,
     required this.onReactionChanged,
   });
@@ -426,15 +436,21 @@ class _TopReviewsTabState extends State<_TopReviewsTab> {
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-      itemCount: sorted.length,
-      itemBuilder: (ctx, i) => _ReviewCard(
-        entry: sorted[i],
-        showReactionTotal: true,
-        onReactionUpdated: () {
-          if (mounted) setState(() {});
-          widget.onReactionChanged();
-        },
-      ),
+      itemCount: sorted.length + (widget.entries.length < 6 ? 1 : 0),
+      itemBuilder: (ctx, i) {
+        if (i < sorted.length) {
+          return _ReviewCard(
+            entry: sorted[i],
+            showReactionTotal: true,
+            isFriend: widget.friendUids.contains(sorted[i].ownerUid),
+            onReactionUpdated: () {
+              if (mounted) setState(() {});
+              widget.onReactionChanged();
+            },
+          );
+        }
+        return _OutsideReviewsSection(book: widget.book);
+      },
     );
   }
 }
@@ -489,6 +505,98 @@ class _FriendsTabState extends State<_FriendsTab> {
   }
 }
 
+// ─── Outside reviews section (non-empty tabs) ─────────────────────────────────
+
+class _OutsideReviewsSection extends StatefulWidget {
+  final Book book;
+  const _OutsideReviewsSection({required this.book});
+
+  @override
+  State<_OutsideReviewsSection> createState() =>
+      _OutsideReviewsSectionState();
+}
+
+class _OutsideReviewsSectionState
+    extends State<_OutsideReviewsSection> {
+  bool _expanded = false;
+
+  Future<void> _launch(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open link')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
+    final searchQuery = Uri.encodeComponent(
+        '${widget.book.title} ${widget.book.author}');
+    final goodreadsSearchUrl =
+        'https://www.goodreads.com/search?q=$searchQuery';
+
+    if (!_expanded) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+        child: Column(
+          children: [
+            const Divider(),
+            const SizedBox(height: 4),
+            Semantics(
+              button: true,
+              label: 'View outside reviews',
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.public_outlined),
+                label: const Text('Outside reviews'),
+                onPressed: () => setState(() => _expanded = true),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: c.primaryAccent,
+                  side: BorderSide(
+                      color: c.primaryAccent.withValues(alpha: 0.6)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        const Divider(height: 24),
+        Semantics(
+          button: true,
+          label: 'Read reviews on Goodreads for ${widget.book.title}',
+          child: ListTile(
+            leading: Icon(Icons.open_in_new, color: c.primaryAccent),
+            title: Text(
+              'Read reviews on Goodreads',
+              style: TextStyle(
+                  color: c.primaryAccent, fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              widget.book.title,
+              style: TextStyle(fontSize: 12, color: c.textSubtle),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            onTap: () => _launch(goodreadsSearchUrl),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatefulWidget {
@@ -502,23 +610,16 @@ class _EmptyState extends StatefulWidget {
 }
 
 class _EmptyStateState extends State<_EmptyState> {
-  bool _hardcoverExpanded = false;
-  bool _hardcoverLoading = false;
-  List<HardcoverReview>? _hardcoverReviews;
+  bool _outsideExpanded = false;
 
-  Future<void> _loadHardcover() async {
-    setState(() {
-      _hardcoverExpanded = true;
-      _hardcoverLoading = true;
-      _hardcoverReviews = null;
-    });
-    final reviews =
-        await PublicReviewsService.fetchHardcoverReviews(widget.book);
-    if (mounted) {
-      setState(() {
-        _hardcoverReviews = reviews;
-        _hardcoverLoading = false;
-      });
+  Future<void> _launch(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open link')),
+        );
+      }
     }
   }
 
@@ -526,15 +627,25 @@ class _EmptyStateState extends State<_EmptyState> {
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
 
+    // Dynamic Goodreads search URL: title + author as query
+    final searchQuery = Uri.encodeComponent(
+        '${widget.book.title} ${widget.book.author}');
+    final goodreadsSearchUrl =
+        'https://www.goodreads.com/search?q=$searchQuery';
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
           const SizedBox(height: 24),
-          Icon(
-            widget.isFriendsTab ? Icons.group_outlined : Icons.rate_review_outlined,
-            size: 56,
-            color: Colors.grey.shade300,
+          ExcludeSemantics(
+            child: Icon(
+              widget.isFriendsTab
+                  ? Icons.group_outlined
+                  : Icons.rate_review_outlined,
+              size: 56,
+              color: Colors.grey.shade300,
+            ),
           ),
           const SizedBox(height: 16),
           Semantics(
@@ -547,84 +658,62 @@ class _EmptyStateState extends State<_EmptyState> {
                     ? 'None of your friends have reviewed this book on Shelfd yet.'
                     : 'No ratings or reviews for this book on Shelfd yet.\nBe the first to do so :)',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: c.textMuted, fontSize: 14, height: 1.5),
+                style:
+                    TextStyle(color: c.textMuted, fontSize: 14, height: 1.5),
               ),
             ),
           ),
 
-          // ── Outside Reviews (Hardcover) ──────────────────────────────────
+          // ── Outside reviews ────────────────────────────────────────────────
           if (!widget.isFriendsTab) ...[
             const SizedBox(height: 32),
-            if (!_hardcoverExpanded)
+            if (!_outsideExpanded)
               Semantics(
                 button: true,
-                label: 'View outside reviews from HardCover',
+                label: 'View outside reviews',
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.public_outlined),
                   label: const Text('Outside reviews'),
-                  onPressed: PublicReviewsService.hardcoverEnabled
-                      ? _loadHardcover
-                      : () {
-                          setState(() => _hardcoverExpanded = true);
-                        },
+                  onPressed: () =>
+                      setState(() => _outsideExpanded = true),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: c.primaryAccent,
-                    side: BorderSide(color: c.primaryAccent.withValues(alpha: 0.6)),
+                    side: BorderSide(
+                        color: c.primaryAccent.withValues(alpha: 0.6)),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
                   ),
                 ),
               )
             else ...[
-              // Hardcover section header
-              Row(
-                children: [
-                  const Spacer(),
-                  Text(
-                    'Courtesy of HardCover',
+              const Divider(),
+              const SizedBox(height: 8),
+              // Dynamic link — takes the user directly to the book search
+              Semantics(
+                button: true,
+                label:
+                    'Read reviews on Goodreads for ${widget.book.title}',
+                child: ListTile(
+                  leading: Icon(Icons.open_in_new,
+                      color: c.primaryAccent),
+                  title: Text(
+                    'Read reviews on Goodreads',
                     style: TextStyle(
-                      fontSize: 12,
-                      color: c.textSubtle,
-                      fontStyle: FontStyle.italic,
-                    ),
+                        color: c.primaryAccent,
+                        fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.public_outlined, size: 14),
-                  const Spacer(),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              if (!PublicReviewsService.hardcoverEnabled)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    'HardCover integration not configured.\n'
-                    'Add your HardCover API token in PublicReviewsService to enable external reviews.',
-                    textAlign: TextAlign.center,
+                  subtitle: Text(
+                    widget.book.title,
                     style: TextStyle(
-                      fontSize: 13,
-                      color: c.textMuted,
-                      height: 1.5,
-                    ),
+                        fontSize: 12, color: c.textSubtle),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                )
-              else if (_hardcoverLoading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: CircularProgressIndicator(),
-                )
-              else if (_hardcoverReviews == null || _hardcoverReviews!.isEmpty)
-                Text(
-                  'No reviews',
-                  style: TextStyle(color: c.textMuted, fontSize: 13),
-                )
-              else
-                ..._hardcoverReviews!.map(
-                  (r) => _HardcoverReviewCard(review: r),
+                  onTap: () => _launch(goodreadsSearchUrl),
                 ),
+              ),
             ],
           ],
         ],
@@ -794,7 +883,11 @@ class _ReviewCardState extends State<_ReviewCard> {
     final review = entry.review;
     final profile = entry.profile;
 
-    final ImageProvider? avatarImage = entry.isPrivate
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    final bool isOwnReview = entry.ownerUid == myUid;
+    final bool showAsPrivate = entry.isPrivate && !widget.isFriend && !isOwnReview;
+
+    final ImageProvider? avatarImage = showAsPrivate
         ? null
         : profile?.avatarAsset != null
             ? AssetImage(profile!.avatarAsset!) as ImageProvider
@@ -816,14 +909,15 @@ class _ReviewCardState extends State<_ReviewCard> {
 
     return Semantics(
       container: true,
-      label: '${entry.displayName}. '
+      label: '${isOwnReview ? 'Your review' : showAsPrivate ? 'Private user' : entry.displayName}. '
           'Rated ${review.rating % 1 == 0 ? review.rating.toInt() : review.rating.toStringAsFixed(1)} out of 10. '
-          '${_hasComment ? review.comment : ''}'
-          '${entry.isPrivate ? ' Private user.' : ''}',
+          '${_hasComment ? review.comment : ''}',
       child: Card(
         shape: hcShape,
         margin: const EdgeInsets.symmetric(vertical: 6),
-        color: c.cardBg,
+        color: isOwnReview
+            ? Colors.amber.withOpacity(0.15)
+            : null,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
           child: Column(
@@ -835,7 +929,7 @@ class _ReviewCardState extends State<_ReviewCard> {
                 children: [
                   // Avatar / padlock
                   ExcludeSemantics(
-                    child: entry.isPrivate
+                    child: showAsPrivate
                         ? Container(
                             width: 40,
                             height: 40,
@@ -860,9 +954,11 @@ class _ReviewCardState extends State<_ReviewCard> {
                   // Name
                   Expanded(
                     child: Text(
-                      entry.isPrivate
-                          ? 'Private User'
-                          : entry.displayName,
+                      isOwnReview
+                          ? 'You'
+                          : showAsPrivate
+                              ? 'Private User'
+                              : entry.displayName,
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
@@ -941,6 +1037,7 @@ class _ReviewCardState extends State<_ReviewCard> {
                   mine: entry.myReactions,
                   onToggle: _toggleReaction,
                   onPickerOpen: _showEmojiPicker,
+                  canReact: !isOwnReview,
                 ),
               ],
             ],
@@ -996,10 +1093,13 @@ class _TruncatedComment extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-              child: Text(
-                bookTitle,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16),
+              child: Semantics(
+                header: true,
+                child: Text(
+                  bookTitle,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 16),
+                ),
               ),
             ),
             const Divider(height: 1),
@@ -1067,7 +1167,7 @@ class _TruncatedComment extends StatelessWidget {
                 child: ExcludeSemantics(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                        horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       border:
                           Border.all(color: c.primaryAccent, width: 1.2),
@@ -1099,12 +1199,14 @@ class _ReactionRow extends StatelessWidget {
   final List<String> mine;
   final void Function(String emoji) onToggle;
   final VoidCallback onPickerOpen;
+  final bool canReact;
 
   const _ReactionRow({
     required this.counts,
     required this.mine,
     required this.onToggle,
     required this.onPickerOpen,
+    this.canReact = true,
   });
 
   @override
@@ -1121,16 +1223,16 @@ class _ReactionRow extends StatelessWidget {
         ...activeEmojis.map((emoji) {
           final isMine = mine.contains(emoji);
           return Semantics(
-            button: true,
+            button: canReact,
             label:
                 '${isMine ? 'Selected' : ''} ${emojiSemanticLabel(emoji)} reaction, ${counts[emoji]}',
             child: GestureDetector(
-              onTap: () => onToggle(emoji),
+              onTap: canReact ? () => onToggle(emoji) : null,
               child: ExcludeSemantics(
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
                     color: isMine
                         ? c.primaryAccent.withValues(alpha: 0.07)
@@ -1149,7 +1251,8 @@ class _ReactionRow extends StatelessWidget {
             ),
           );
         }),
-        // "Add reaction" button
+        // "Add reaction" button — hidden on own review
+        if (canReact)
         Semantics(
           button: true,
           label: 'Add reaction',
@@ -1196,105 +1299,3 @@ class _ReactionRow extends StatelessWidget {
   }
 }
 
-// ─── HardCover review card ────────────────────────────────────────────────────
-
-class _HardcoverReviewCard extends StatelessWidget {
-  final HardcoverReview review;
-
-  const _HardcoverReviewCard({required this.review});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = ShelfdThemeScope.colorsOf(context);
-    final isHighContrast =
-        ShelfdThemeScope.of(context).theme == ShelfdTheme.highContrast;
-
-    final hcShape = isHighContrast
-        ? RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: c.brandColor, width: 2.0),
-          )
-        : null;
-
-    final ratingText = review.rating != null
-        ? '${review.rating!.toStringAsFixed(1)} / 5  ⭐'
-        : null;
-
-    return Semantics(
-      container: true,
-      label: '${review.displayName ?? review.username ?? 'HardCover user'}. '
-          '${ratingText != null ? 'Rated $ratingText.' : ''}'
-          '${review.reviewText != null ? ' ${review.reviewText}' : ''}',
-      child: Card(
-        shape: hcShape,
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        color: c.cardBg,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  ExcludeSemantics(
-                    child: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: c.avatarBg,
-                      child:
-                          Icon(Icons.person, size: 18, color: c.brandColor),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      review.displayName ??
-                          review.username ??
-                          'HardCover User',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: c.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (review.likedByCount > 0) ...[
-                    const Icon(Icons.favorite_outline, size: 14),
-                    const SizedBox(width: 2),
-                    Text(
-                      '${review.likedByCount}',
-                      style:
-                          TextStyle(fontSize: 12, color: c.textSubtle),
-                    ),
-                  ],
-                ],
-              ),
-              if (ratingText != null) ...[
-                const SizedBox(height: 6),
-                ExcludeSemantics(
-                  child: Text(
-                    ratingText,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: c.textPrimary,
-                    ),
-                  ),
-                ),
-              ],
-              if (review.reviewText != null &&
-                  review.reviewText!.trim().isNotEmpty) ...[
-                const SizedBox(height: 6),
-                _TruncatedComment(
-                  text: review.reviewText!,
-                  bookTitle: 'HardCover review',
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

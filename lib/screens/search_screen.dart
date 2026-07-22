@@ -12,6 +12,7 @@ import '../services/storage_service.dart';
 import '../services/wishlist_service.dart';
 import '../models/book.dart';
 import '../models/book_review.dart';
+import 'public_reviews_screen.dart';
 import 'review_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -190,6 +191,125 @@ class _SearchScreenState
     return "https://covers.openlibrary.org/b/id/$id-M.jpg";
   }
 
+  // ─── Book list tile (shared by both search tabs) ──────────────────────────
+  //
+  // [reviewMode: false]  Tab 1 — Log / Review: wishlist button, taps to ReviewScreen
+  // [reviewMode: true]   Tab 2 — Community reviews: no wishlist button, taps to PublicReviewsScreen
+  Widget _buildBookTile(Book book, {required bool reviewMode}) {
+    final review = findReview(book);
+    return Semantics(
+      container: true,
+      label:
+          '${book.title} by ${book.author}. Published in ${_spokenYear(book.year)}.',
+      hint: reviewMode ? 'Tap to view community reviews' : null,
+      child: ExcludeSemantics(
+        child: ListTile(
+          leading: getCoverUrl(book.coverId) != null
+              ? Image.network(
+                  getCoverUrl(book.coverId)!,
+                  width: 40,
+                  excludeFromSemantics: true,
+                  errorBuilder: (_, __, ___) => const SizedBox(
+                    width: 40,
+                    child: Icon(Icons.book),
+                  ),
+                )
+              : const SizedBox(width: 40, child: Icon(Icons.book)),
+          title: Text(book.title),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${book.author} (${book.year})'),
+              if (review != null)
+                Row(
+                  children: [
+                    const Icon(Icons.check, size: 16, color: Colors.green),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Already logged \u2014 ${review.rating.toStringAsFixed(1)} / 10',
+                      style: const TextStyle(color: Colors.green),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          trailing: reviewMode
+              ? null
+              : (review == null
+                  ? _WishlistButton(
+                      book: book,
+                      isWishlisted: _wishlistedKeys.contains(
+                        '${book.title.toLowerCase()}|||${book.author.toLowerCase()}',
+                      ),
+                      onChanged: loadReviews,
+                    )
+                  : null),
+          onTap: reviewMode
+              ? () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PublicReviewsScreen(book: book),
+                    ),
+                  )
+              : (review == null
+                  ? () async {
+                      final idx = await StorageService.findReviewIndex(
+                        book.title,
+                        book.author,
+                      );
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ReviewScreen(
+                            book: book,
+                            reviewIndex: idx,
+                            existingReview: review,
+                          ),
+                        ),
+                      ).then((_) => loadReviews());
+                    }
+                  : null),
+          onLongPress: (!reviewMode && review != null)
+              ? () {
+                  showModalBottomSheet(
+                    context: context,
+                    builder: (context) => SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.edit),
+                            title: const Text('Edit Review'),
+                            onTap: () async {
+                              Navigator.pop(context);
+                              final idx =
+                                  await StorageService.findReviewIndex(
+                                book.title,
+                                book.author,
+                              );
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ReviewScreen(
+                                    book: book,
+                                    reviewIndex: idx,
+                                    existingReview: review,
+                                  ),
+                                ),
+                              ).then((_) => loadReviews());
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+              : null,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
@@ -315,158 +435,139 @@ class _SearchScreenState
             ),
 
           Expanded(
-            child: _searchError != null
-                ? SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 2),
-                          child: Icon(Icons.wifi_off, color: Colors.grey),
+            child: DefaultTabController(
+              length: 2,
+              child: Column(
+                children: [
+                  // ── Mode tab bar ─────────────────────────────────────────
+                  Builder(builder: (ctx) {
+                    final tc = ShelfdThemeScope.colorsOf(ctx);
+                    return TabBar(
+                      labelColor: tc.primaryAccent,
+                      unselectedLabelColor: tc.textSecondary,
+                      indicatorColor: tc.primaryAccent,
+                      tabs: [
+                        Tab(
+                          icon: Semantics(
+                            label: 'Log and review books',
+                            child: const ExcludeSemantics(
+                              child: Icon(Icons.menu_book_outlined),
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _searchError!,
-                            style: const TextStyle(color: Colors.grey),
+                        Tab(
+                          icon: Semantics(
+                            label: 'Browse community reviews',
+                            child: const ExcludeSemantics(
+                              child: Icon(Icons.rate_review_outlined),
+                            ),
                           ),
                         ),
                       ],
-                    ),
-                  )
-                : ListView.builder(
-              itemCount: books.length,
-              itemBuilder: (context, index) {
-                final book = books[index];
-                final review = findReview(book);
-
-                return Semantics(
-                  container: true,
-                  label:
-                      '${book.title} by ${book.author}. Published in ${_spokenYear(book.year)}.',
-                  child: ExcludeSemantics(
-                    child: ListTile(
-                      leading: getCoverUrl(book.coverId) != null
-                          ? Image.network(
-                              getCoverUrl(book.coverId)!,
-                              width: 40,
-                              excludeFromSemantics: true,
-                              errorBuilder: (_, __, ___) => const SizedBox(
-                                width: 40,
-                                child: Icon(Icons.book),
-                              ),
-                            )
-                          : const SizedBox(
-                              width: 40,
-                              child: Icon(Icons.book),
-                            ),
-
-                      title: Text(book.title),
-
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("${book.author} (${book.year})"),
-
-                          if (review != null)
-                            Row(
+                    );
+                  }),
+                  // ── Tab content ──────────────────────────────────────────
+                  Expanded(
+                    child: _searchError != null
+                        ? SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(
-                                  Icons.check,
-                                  size: 16,
-                                  color: Colors.green,
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 2),
+                                  child: Icon(Icons.wifi_off,
+                                      color: Colors.grey),
                                 ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  "Already logged — ${review.rating.toStringAsFixed(1)} / 10",
-                                  style: const TextStyle(
-                                    color: Colors.green,
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    _searchError!,
+                                    style:
+                                        const TextStyle(color: Colors.grey),
                                   ),
                                 ),
                               ],
                             ),
-                        ],
-                      ),
-
-                      trailing: review == null
-                          ? _WishlistButton(
-                              book: book,
-                              isWishlisted: _wishlistedKeys.contains(
-                                '${book.title.toLowerCase()}|||${book.author.toLowerCase()}',
-                              ),
-                              onChanged: loadReviews,
-                            )
-                          : null,
-
-                      onTap: review == null
-                          ? () async {
-                              final index =
-                                  await StorageService.findReviewIndex(
-                                book.title,
-                                book.author,
-                              );
-
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ReviewScreen(
-                                    book: book,
-                                    reviewIndex: index,
-                                    existingReview: review,
-                                  ),
-                                ),
-                              ).then((_) => loadReviews());
-                            }
-                          : null,
-
-                      onLongPress: review != null
-                          ? () {
-                              showModalBottomSheet(
-                                context: context,
-                                builder: (context) => SafeArea(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      ListTile(
-                                        leading: const Icon(Icons.edit),
-                                        title: const Text('Edit Review'),
-                                        onTap: () async {
-                                          Navigator.pop(context);
-                                          final idx =
-                                              await StorageService.findReviewIndex(
-                                            book.title,
-                                            book.author,
-                                          );
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => ReviewScreen(
-                                                book: book,
-                                                reviewIndex: idx,
-                                                existingReview: review,
-                                              ),
-                                            ),
-                                          ).then((_) => loadReviews());
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }
-                          : null,
-                    ),
+                          )
+                        : TabBarView(
+                            children: [
+                              // Tab 1 — Log / Review
+                              books.isEmpty
+                                  ? const _SearchEmptyState(
+                                      icon: Icons.menu_book_outlined,
+                                      message: 'Search for books to log',
+                                    )
+                                  : ListView.builder(
+                                      itemCount: books.length,
+                                      itemBuilder: (ctx, i) => _buildBookTile(
+                                          books[i],
+                                          reviewMode: false),
+                                    ),
+                              // Tab 2 — Community reviews
+                              books.isEmpty
+                                  ? const _SearchEmptyState(
+                                      icon: Icons.rate_review_outlined,
+                                      message:
+                                          'Search community ratings and reviews',
+                                    )
+                                  : ListView.builder(
+                                      itemCount: books.length,
+                                      itemBuilder: (ctx, i) => _buildBookTile(
+                                          books[i],
+                                          reviewMode: true),
+                                    ),
+                            ],
+                          ),
                   ),
-                );
-              },
+                ],
+              ),
             ),
           ),
         ],
       ),
     ),
   );
+  }
+}
+
+// ─── Search empty state ──────────────────────────────────────────────────────────
+
+class _SearchEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String message;
+
+  const _SearchEmptyState({
+    required this.icon,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = ShelfdThemeScope.colorsOf(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ExcludeSemantics(
+              child: Icon(icon, size: 64, color: Colors.grey.shade300),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: c.textMuted,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
