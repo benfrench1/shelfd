@@ -12,6 +12,7 @@
 
 - Search Screen
   - Ability to search for books by title, author, genre or by scanning the ISBN barcode
+  - Two tabs on search screen. One for logging books and adding to future reads. The second for viewing public reviews of the book
 
 - Review of Books
   - When reviewing a rating from the Open Library is shown
@@ -20,6 +21,11 @@
   - Review score and comments can be added
   - The book format can be added as well
   - Reviews can be edited or deleted at any time
+  - Can check the pubic reviews for book here
+
+- Reviews (Public/Community)
+  - Can check the ratings and reviews for a book
+  - Ability to see users review comments and react
 
 - Reading Log Screen
   - List of books logged by user. Shows rating and any review comments. Other user reactions to review comments are also shown here
