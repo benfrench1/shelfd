@@ -103,6 +103,7 @@ class _SearchScreenState
     try {
       final results = await BookService.searchByIsbn(isbn);
       await loadReviews();
+      if (mounted) _focusNode.unfocus();
       setState(() {
         books = results;
         isLoading = false;
@@ -163,6 +164,7 @@ class _SearchScreenState
     try {
       final results = await BookService.searchBooks(controller.text);
       await loadReviews();
+      if (mounted) _focusNode.unfocus();
       setState(() {
         books = results;
         isLoading = false;
@@ -215,19 +217,31 @@ class _SearchScreenState
                   ),
                 )
               : const SizedBox(width: 40, child: Icon(Icons.book)),
-          title: Text(book.title),
+          title: Text(
+            book.title,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${book.author} (${book.year})'),
+              Text(
+                '${book.author} (${book.year})',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
               if (review != null)
                 Row(
                   children: [
                     const Icon(Icons.check, size: 16, color: Colors.green),
                     const SizedBox(width: 6),
-                    Text(
-                      'Already logged \u2014 ${review.rating.toStringAsFixed(1)} / 10',
-                      style: const TextStyle(color: Colors.green),
+                    Flexible(
+                      child: Text(
+                        'Already logged — ${review.rating.toStringAsFixed(1)} / 10',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: const TextStyle(color: Colors.green),
+                      ),
                     ),
                   ],
                 ),
@@ -245,14 +259,22 @@ class _SearchScreenState
                     )
                   : null),
           onTap: reviewMode
-              ? () => Navigator.push(
+              ? () {
+                  FocusScope.of(context).unfocus();
+                  _focusNode.canRequestFocus = false;
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => PublicReviewsScreen(book: book),
                     ),
-                  )
+                  ).then((_) {
+                    if (mounted) _focusNode.canRequestFocus = true;
+                  });
+                }
               : (review == null
                   ? () async {
+                      FocusScope.of(context).unfocus();
+                      _focusNode.canRequestFocus = false;
                       final idx = await StorageService.findReviewIndex(
                         book.title,
                         book.author,
@@ -266,7 +288,12 @@ class _SearchScreenState
                             existingReview: review,
                           ),
                         ),
-                      ).then((_) => loadReviews());
+                      ).then((_) {
+                        if (mounted) {
+                          _focusNode.canRequestFocus = true;
+                          loadReviews();
+                        }
+                      });
                     }
                   : null),
           onLongPress: (!reviewMode && review != null)
@@ -282,6 +309,8 @@ class _SearchScreenState
                             title: const Text('Edit Review'),
                             onTap: () async {
                               Navigator.pop(context);
+                              FocusScope.of(context).unfocus();
+                              _focusNode.canRequestFocus = false;
                               final idx =
                                   await StorageService.findReviewIndex(
                                 book.title,
@@ -296,7 +325,12 @@ class _SearchScreenState
                                     existingReview: review,
                                   ),
                                 ),
-                              ).then((_) => loadReviews());
+                              ).then((_) {
+                                if (mounted) {
+                                  _focusNode.canRequestFocus = true;
+                                  loadReviews();
+                                }
+                              });
                             },
                           ),
                         ],
@@ -315,12 +349,19 @@ class _SearchScreenState
     final c = ShelfdThemeScope.colorsOf(context);
     final isBatman = ShelfdThemeScope.of(context).theme == ShelfdTheme.batman;
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: c.scaffoldBg,
 
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.55,
+              ),
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,6 +422,7 @@ class _SearchScreenState
                           child: TextField(
                             controller: controller,
                             focusNode: _focusNode,
+                            scrollPadding: EdgeInsets.zero,
                             decoration: const InputDecoration(
                               icon: Icon(Icons.search),
                               hintText: "Search books, authors, genres...",
@@ -425,6 +467,8 @@ class _SearchScreenState
                     ),
                   ),
                 ],
+              ),
+                ),
               ),
             ),
 
@@ -546,25 +590,27 @@ class _SearchEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = ShelfdThemeScope.colorsOf(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ExcludeSemantics(
-              child: Icon(icon, size: 64, color: Colors.grey.shade300),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: c.textMuted,
-                fontSize: 15,
+    return SingleChildScrollView(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ExcludeSemantics(
+                child: Icon(icon, size: 64, color: Colors.grey.shade300),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: c.textMuted,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

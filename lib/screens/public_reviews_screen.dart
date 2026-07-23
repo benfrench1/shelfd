@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import '../accessibility/accessibility_labels.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/book.dart';
@@ -29,6 +31,10 @@ class PublicReviewsScreen extends StatefulWidget {
 }
 
 class _PublicReviewsScreenState extends State<PublicReviewsScreen> {
+  // App-session cache so repeated visits to the same book skip the network
+  // call and show the rating instantly. Cleared when the app restarts.
+  static final Map<String, double> _openLibraryCache = {};
+
   List<PublicEntry>? _entries; // null = loading
   Set<String> _friendUids = {};
   bool _reactionsLoaded = false;
@@ -37,6 +43,10 @@ class _PublicReviewsScreenState extends State<PublicReviewsScreen> {
   StreamSubscription<String?>? _avatarSub;
   final _authService = AuthService();
 
+  // Open Library rating (out of 5 — displayed doubled to /10)
+  double? _openLibraryRating;
+  bool _openLibraryLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -44,12 +54,107 @@ class _PublicReviewsScreenState extends State<PublicReviewsScreen> {
       if (mounted) setState(() => _avatarAsset = asset);
     });
     _loadData();
+    _fetchOpenLibraryRating();
   }
 
   @override
   void dispose() {
     _avatarSub?.cancel();
     super.dispose();
+  }
+
+  Future<void> _fetchOpenLibraryRating() async {
+    final workId = widget.book.workId;
+    if (workId == null || workId.isEmpty) return;
+
+    // Serve from cache instantly — no spinner on repeat visits
+    if (_openLibraryCache.containsKey(workId)) {
+      if (mounted) setState(() => _openLibraryRating = _openLibraryCache[workId]);
+      return;
+    }
+
+    if (mounted) setState(() => _openLibraryLoading = true);
+    try {
+      final url = Uri.https(
+        'openlibrary.org',
+        '/works/$workId/ratings.json',
+      );
+      final resp = await http.get(url);
+      if (resp.statusCode == 200) {
+        final d = jsonDecode(resp.body) as Map<String, dynamic>;
+        final avg = (d['summary']?['average'] as num?)?.toDouble();
+        if (avg != null && mounted) {
+          _openLibraryCache[workId] = avg; // store for next visit
+          setState(() {
+            _openLibraryRating = avg;
+            _openLibraryLoading = false;
+          });
+          return;
+        }
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _openLibraryLoading = false);
+  }
+
+  // ─── Rating widget ─────────────────────────────────────────────────────────
+  // ≥6 Shelfd entries → Shelfd average.  <6 → Open Library ×2 (converts /5 → /10).
+  Widget _buildRating(AppColors c) {
+    final entries = _entries;
+
+    if (entries != null && entries.length >= 6) {
+      // Shelfd average
+      final sum = entries.fold<double>(0, (s, e) => s + e.review.rating);
+      final avg = sum / entries.length;
+      final label = avg % 1 == 0
+          ? avg.toInt().toString()
+          : avg.toStringAsFixed(1);
+      return Semantics(
+        label: 'Shelfd rating: $label out of 10, based on ${entries.length} reviews',
+        child: ExcludeSemantics(
+          child: Text(
+            'Rating $label / 10  ⭐',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: c.textPrimary,
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_openLibraryLoading) {
+      return const SizedBox(
+        height: 14,
+        width: 14,
+        child: CircularProgressIndicator(strokeWidth: 1.5),
+      );
+    }
+
+    if (_openLibraryRating != null) {
+      // Open Library ×2 to convert from /5 to /10
+      final doubled = _openLibraryRating! * 2;
+      final label = doubled % 1 == 0
+          ? doubled.toInt().toString()
+          : doubled.toStringAsFixed(1);
+      return Semantics(
+        label: 'Open Library rating: $label out of 10',
+        child: ExcludeSemantics(
+          child: Text(
+            'Rating $label / 10  ⭐  (Open Library)',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: c.textSecondary,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Future<void> _loadData() async {
@@ -212,7 +317,7 @@ class _PublicReviewsScreenState extends State<PublicReviewsScreen> {
 
               // ── Book title sub-header ─────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
                 child: Semantics(
                   header: true,
                   child: Text(
@@ -227,6 +332,12 @@ class _PublicReviewsScreenState extends State<PublicReviewsScreen> {
                     textAlign: TextAlign.center,
                   ),
                 ),
+              ),
+
+              // ── Rating ────────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: _buildRating(c),
               ),
 
               // ── Tab bar ───────────────────────────────────────────────────
