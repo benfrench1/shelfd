@@ -136,6 +136,13 @@ service cloud.firestore {
   }
 }
 ```
+---
+Allow authenticated users to see reviews across the app
+```
+    match /{path=**}/reviews/{reviewId} {
+      allow read: if request.auth != null;
+    }
+```
 
 ##### Breakdown of rule conditions:
 - `/users/{userId}/...` (profiles, reviews, wishlist)
@@ -213,4 +220,60 @@ Firestore Spark (free) plan limits:
     - Then $0.10/GB
 - For now will use a set of predefined default images whcih can be stored in `assests`.
 
+---
 
+### Firebase Collection Group
+
+FireStore → Indexes → Collection Group
+
+The following error was encountered when trying to implement the public reviews feature:
+
+```
+I/flutter (18239): [PublicReviews] load error: [cloud_firestore/failed-precondition] The query requires a COLLECTION_GROUP_ASC index for collection reviews and field workId. You can create it here: https://console.firebase.google.com/v1/r/project/shelfd-41c13/firestore/indexes?create_exemption=ClBwcm9qZWN0cy9zaGVsZmQtNDFjMTMvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL3Jldmlld3MvZmllbGRzL3dvcmtJZBACGgoKBndvcmtJZBAB
+I/flutter (18239): [PublicReviews] stack: #0      FirebaseFirestoreHostApi.queryGet (package:cloud_firestore_platform_interface/src/pigeon/messages.pigeon.dart:1153:7)
+I/flutter (18239): <asynchronous suspension>
+I/flutter (18239): #1      MethodChannelQuery.get (package:cloud_firestore_platform_interface/src/method_channel/method_channel_query.dart:118:11)
+I/flutter (18239): <asynchronous suspension>
+I/flutter (18239): #2      _JsonQuery.get (package:cloud_firestore/src/query.dart:426:9)
+I/flutter (18239): <asynchronous suspension>
+I/flutter (18239): #3      PublicReviewsService.fetchForBook (package:first_app/services/public_reviews_service.dart:91:18)
+I/flutter (18239): <asynchronous suspension>
+I/flutter (18239): #4      _PublicReviewsScreenState._loadData (package:first_app/screens/public_reviews_screen.dart:68:23)
+I/flutter (18239): <asynchronous suspension>
+I/flutter (18239):
+```
+
+The solution was to add a exemption manually:
+
+> Firebase Console → Firestore Database → Indexes → Single field tab → Add exemption
+
+| Field | Value |
+|---|---|
+| Collection group | `reviews` |
+| Field path | `workId` |
+| Query scope | ✅ **Collection group** (tick this box) |
+| Collection scope | Enable Ascending | 
+
+--- 
+
+| Field | Value |
+|---|---|
+| Collection group | `reviews` |
+| Field path | `title` |
+| Query scope | ✅ **Collection group** (tick this box) |
+| Collection scope | Enable Ascending |
+
+**Why the exemption was needed**
+Firestore stores data in a tree structure. Your reviews live at:
+
+```
+/users/{uid}/reviews/{reviewId}
+```
+
+Every user has their own reviews subcollection nested under their UID. When you query a single user's reviews (like on the friend profile screen), Firestore knows exactly which collection to look in — it uses a standard auto-created index for that path.
+
+The pubic reviews feature searches for a specific book's reviews across every single user's reviews collection simultaneously. That's called a collection group query:
+
+Firestore doesn't enable this kind of cross-collection search on a field by default because it requires building and maintaining a separate index that spans the entire database — not just one user's subcollection. That's the exemption you created: you're explicitly telling Firestore "please maintain a collection-group-scoped index for the workId field across all reviews collections."
+
+Without it, Firestore simply doesn't know how to execute the query and throws the failed-precondition error.

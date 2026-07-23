@@ -7,6 +7,7 @@ import '../models/book_review.dart';
 import '../services/storage_service.dart';
 import '../services/wishlist_service.dart';
 import '../theme/app_theme.dart';
+import 'public_reviews_screen.dart';
 
 class ReviewScreen extends StatefulWidget {
   final Book book;
@@ -484,6 +485,37 @@ class _ReviewScreenState extends State<ReviewScreen> {
                             color: c.textSecondary,
                           ),
                         ),
+            ),
+
+            // ── "The Reviews" button ─────────────────────────────────
+            const SizedBox(height: 10),
+            Semantics(
+              button: true,
+              label: "View public ratings and reviews",
+              hint: 'Opens the community ratings and reviews page for this book',
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.rate_review_outlined, size: 18),
+                label: const Text('Reviews'),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PublicReviewsScreen(book: book),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: c.primaryAccent,
+                  side: BorderSide(
+                      color: c.primaryAccent.withValues(alpha: 0.6)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 6),
+                  textStyle: const TextStyle(fontSize: 12),
+                ),
+              ),
             ),
 
             const SizedBox(height: 24),
